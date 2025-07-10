@@ -1,28 +1,20 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Signup from './pages/Signup';
-import Login from './pages/Login';
-import Jobs from './pages/Jobs';
-import AddJob from './pages/AddJob';
-import { AuthContext } from './context/AuthContext';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Signup from "./pages/Signup";
+import Login from "./pages/Login";
+import Profile from "./pages/Profile";
 
-function Private({ children }) {
-  const { user } = React.useContext(AuthContext);
-  return user ? children : <Navigate to="/login" />;
-}
-
-export default function App() {
+function App() {
   return (
-    <div className="min-h-screen bg-lavender">
-      <Navbar />
+    <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/jobs" element={<Jobs />} />
-        <Route path="/add" element={<Private><AddJob /></Private>} />
-        <Route path="*" element={<Navigate to="/jobs" />} />
+        <Route path="/profile" element={<Profile />} />
+        {/* Add JobDescription and other routes here */}
       </Routes>
-    </div>
+    </BrowserRouter>
   );
 }
+export default App;

@@ -1,8 +1,13 @@
-const router = require('express').Router();
-const auth   = require('../middleware/auth');
-const ctrl   = require('../controllers/jobs');
-router.get('/',            ctrl.getAll);
-router.post('/', auth,     ctrl.create);
-router.delete('/:id', auth, ctrl.delete);
-router.post('/:id/bookmark', auth, ctrl.bookmark);
-module.exports = router;
+// jobportal/backend/routes/jobs.js
+import { Router } from 'express';
+import auth from '../middleware/auth.js';
+import { getAll, create, remove, bookmark } from '../controllers/jobs.js';
+
+const router = Router();
+
+router.get('/',             getAll);
+router.post('/',    auth,   create);
+router.delete('/:id', auth, remove);
+router.post('/:id/bookmark', auth, bookmark);
+
+export default router;

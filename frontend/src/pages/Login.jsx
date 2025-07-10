@@ -1,54 +1,113 @@
-import React, { useState, useContext } from 'react';
-import { api } from '../api';
-import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
-export default function Login() {
-  const { login } = useContext(AuthContext);
-  const nav = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
+const Login = () => {
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handle = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const submit = async e => {
+  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async e => {
     e.preventDefault();
-    const data = await api('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(form),
-    });
-    if (data.token) {
-      login(data);
-      nav('/jobs');
-    } else {
-      alert(data.message);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Save auth info if needed (localStorage/token)
+        alert("Login successful!");
+        navigate("/profile");
+      } else {
+        alert(data.msg || "Login failed");
+      }
+    } catch {
+      alert("Login failed");
     }
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-lavender flex items-center justify-center">
-      <form onSubmit={submit} className="bg-card-bg p-8 rounded shadow w-80">
-        <h2 className="text-2xl mb-4">Log in</h2>
-        {['email', 'password'].map(f => (
-          <input
-            key={f}
-            name={f}
-            type={f === 'password' ? 'password' : 'text'}
-            placeholder={f}
-            value={form[f]}
-            onChange={handle}
-            className="w-full mb-3 p-2 border rounded"
-            required
-          />
-        ))}
-        <button className="w-full py-2 bg-lavender text-white rounded">
-          Log In
+    <div style={{ minHeight: "100vh", background: "#ECE6F7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          background: "#fff",
+          padding: "2.5rem",
+          borderRadius: "12px",
+          boxShadow: "0 2px 16px rgba(95,67,178,0.07)",
+          width: "340px",
+        }}
+      >
+        <h2 style={{ fontWeight: "bold", color: "#1A1A1A", marginBottom: "1.5rem" }}>Log in</h2>
+        <input
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          placeholder="Email"
+          type="email"
+          required
+          style={inputStyle}
+        />
+        <input
+          name="password"
+          value={form.password}
+          onChange={handleChange}
+          placeholder="Password"
+          type="password"
+          required
+          style={inputStyle}
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            ...buttonStyle,
+            background: "#5F43B2",
+            opacity: loading ? 0.7 : 1,
+            marginBottom: "1.5rem",
+          }}
+        >
+          {loading ? "Logging in..." : "Log In"}
         </button>
-        <p className="mt-4 text-sm">
-          Don’t have an account?{' '}
-          <Link to="/signup" className="text-lavender underline">
+        <div style={{ textAlign: "center", fontSize: "15px", color: "#888" }}>
+          Don't have an account?{" "}
+          <Link to="/signup" style={{ color: "#5F43B2", textDecoration: "underline" }}>
             Sign up
           </Link>
-        </p>
+        </div>
       </form>
     </div>
   );
-}
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px",
+  marginBottom: "18px",
+  border: "1px solid #C9B6F7",
+  borderRadius: "7px",
+  background: "#F6F3FA",
+  fontSize: "16px",
+  outline: "none",
+  transition: "border 0.2s",
+};
+
+const buttonStyle = {
+  width: "100%",
+  padding: "13px",
+  border: "none",
+  borderRadius: "7px",
+  color: "#fff",
+  fontWeight: 600,
+  fontSize: "16px",
+  cursor: "pointer",
+  background: "#5F43B2",
+  transition: "background 0.2s",
+};
+
+export default Login;
