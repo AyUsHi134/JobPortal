@@ -1,120 +1,83 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-const Signup = () => {
+export default function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
+  function handleChange(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
 
-  const handleSubmit = async e => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert("Signup successful! Please log in.");
-        navigate("/login");
-      } else {
-        alert(data.msg || "Signup failed");
-      }
-    } catch (err) {
-      alert("Signup failed");
-    }
-    setLoading(false);
-  };
+    // TODO: Replace with your backend API
+    alert("Signed up (mock, no backend call)");
+    navigate("/login");
+  }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ECE6F7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#eae4f6"
+    }}>
       <form
-        onSubmit={handleSubmit}
         style={{
           background: "#fff",
-          padding: "2.5rem",
           borderRadius: "12px",
-          boxShadow: "0 2px 16px rgba(95,67,178,0.07)",
-          width: "340px",
+          boxShadow: "0 2px 28px rgba(95,67,178,0.12)",
+          padding: "2rem 2.6rem",
+          minWidth: 320,
         }}
+        onSubmit={handleSubmit}
       >
-        <h2 style={{ fontWeight: "bold", color: "#1A1A1A", marginBottom: "1.5rem" }}>Sign up</h2>
+        <h2 style={{ color: "#5f43b2", fontWeight: 800, marginBottom: 20 }}>Sign up</h2>
         <input
+          type="text"
           name="name"
+          placeholder="Name"
           value={form.name}
           onChange={handleChange}
-          placeholder="Name"
           required
-          style={inputStyle}
+          style={{ marginBottom: 12, width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
         />
         <input
+          type="email"
           name="email"
+          placeholder="Email"
           value={form.email}
           onChange={handleChange}
-          placeholder="Email"
-          type="email"
           required
-          style={inputStyle}
+          style={{ marginBottom: 12, width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
         />
         <input
+          type="password"
           name="password"
+          placeholder="Password"
           value={form.password}
           onChange={handleChange}
-          placeholder="Password"
-          type="password"
           required
-          style={inputStyle}
+          style={{ marginBottom: 18, width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
         />
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            ...buttonStyle,
-            background: "#5F43B2",
-            opacity: loading ? 0.7 : 1,
-            marginBottom: "1.5rem",
-          }}
-        >
-          {loading ? "Creating..." : "Create Account"}
+        <button type="submit" style={{
+          background: "#5f43b2",
+          color: "#fff",
+          width: "100%",
+          padding: "12px 0",
+          borderRadius: 7,
+          fontWeight: 700,
+          border: "none",
+          marginBottom: 16
+        }}>
+          Create Account
         </button>
-        <div style={{ textAlign: "center", fontSize: "15px", color: "#888" }}>
-          Already have an account?{" "}
-          <Link to="/login" style={{ color: "#5F43B2", textDecoration: "underline" }}>
-            Log in
-          </Link>
+        <div style={{ textAlign: "center" }}>
+          Already have an account? <Link to="/login">Log in</Link>
         </div>
       </form>
     </div>
   );
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "12px",
-  marginBottom: "18px",
-  border: "1px solid #C9B6F7",
-  borderRadius: "7px",
-  background: "#F6F3FA",
-  fontSize: "16px",
-  outline: "none",
-  transition: "border 0.2s",
-};
-
-const buttonStyle = {
-  width: "100%",
-  padding: "13px",
-  border: "none",
-  borderRadius: "7px",
-  color: "#fff",
-  fontWeight: 600,
-  fontSize: "16px",
-  cursor: "pointer",
-  background: "#5F43B2",
-  transition: "background 0.2s",
-};
-
-export default Signup;
+}

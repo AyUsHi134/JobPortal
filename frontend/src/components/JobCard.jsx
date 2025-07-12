@@ -1,38 +1,47 @@
-import React from "react";
+import styled from "styled-components";
+import Button from "./Button";
+import { useState } from "react";
+import JobDetailModal from "../pages/JobDetailModal";
 
-const JobCard = ({ job }) => (
-  <div style={{
-    background: "#fff",
-    borderRadius: "10px",
-    boxShadow: "0 2px 16px rgba(95,67,178,0.07)",
-    padding: "1.3rem 1.6rem",
-    marginBottom: "1.4rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px"
-  }}>
-    <h3 style={{ color: "#5F43B2", margin: 0 }}>{job.position}</h3>
-    <div style={{ color: "#666" }}>
-      {job.company && <b>{job.company}</b>} 
-      {job.location && <> · {job.location}</>}
-    </div>
-    <div style={{ color: "#888", fontSize: 14 }}>
-      {job.tags && job.tags.slice(0, 4).join(", ")}
-    </div>
-    <a href={job.url} target="_blank" rel="noopener noreferrer">
-      <button style={{
-        background: "#5F43B2",
-        color: "#fff",
-        border: "none",
-        padding: "12px 28px",
-        borderRadius: "6px",
-        fontWeight: 600,
-        fontSize: 15,
-        marginTop: "6px",
-        cursor: "pointer"
-      }}>Apply Now</button>
-    </a>
-  </div>
-);
+const Card = styled.div`
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 6px 36px rgba(95,67,178,0.09);
+  padding: 2.1rem 2.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
 
-export default JobCard;
+const Position = styled.h3`
+  color: #7b42f6;
+  font-size: 1.35rem;
+  margin-bottom: 3px;
+  font-weight: 700;
+`;
+const Company = styled.div`
+  color: #333;
+  font-size: 1.07rem;
+  font-weight: 500;
+`;
+const Tag = styled.div`
+  color: #8d75bf;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+`;
+
+export default function JobCard({ job }) {
+  const [show, setShow] = useState(false);
+  return (
+    <>
+      <Card>
+        <Position>{job.position}</Position>
+        <Company>{job.company} {job.location ? `· ${job.location}` : ""}</Company>
+        <Tag>{job.tags?.slice(0,3).join(", ")}</Tag>
+        <Button onClick={() => setShow(true)}>View Details</Button>
+      </Card>
+      {show && <JobDetailModal job={job} onClose={() => setShow(false)} />}
+    </>
+  );
+}

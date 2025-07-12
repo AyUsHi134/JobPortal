@@ -1,36 +1,38 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import styled from "styled-components";
 
-const Profile = () => {
-  // In real use, fetch user info from context/localStorage/api
-  // Demo static content:
-  const user = { name: "Aayush Shukla", email: "aayush@email.com" };
-
+const Wrapper = styled.div`
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+const Card = styled.div`
+  background: #fff;
+  padding: 2.6rem 2.1rem 2rem 2.1rem;
+  border-radius: 14px;
+  box-shadow: 0 2px 28px rgba(95,67,178,0.12);
+  width: 350px;
+  max-width: 96vw;
+  display: flex;
+  flex-direction: column;
+`;
+export default function Profile() {
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    fetch("/api/auth/profile")
+      .then(res => res.json())
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
+  if (!user) return <Wrapper>Loading...</Wrapper>;
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#ECE6F7",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }}>
-      <div style={{
-        background: "#fff",
-        padding: "2.5rem",
-        borderRadius: "12px",
-        boxShadow: "0 2px 16px rgba(95,67,178,0.07)",
-        width: "360px",
-        textAlign: "center"
-      }}>
-        <h2 style={{ color: "#5F43B2", fontWeight: "bold", marginBottom: 20 }}>My Profile</h2>
-        <div style={{ marginBottom: 14 }}>
-          <span style={{ fontWeight: 600, color: "#222" }}>Name: </span>{user.name}
-        </div>
-        <div>
-          <span style={{ fontWeight: 600, color: "#222" }}>Email: </span>{user.email}
-        </div>
-      </div>
-    </div>
+    <Wrapper>
+      <Card>
+        <h2 style={{color: "#5f43b2", fontWeight: "800", fontSize: "1.5rem", marginBottom: "1.2rem"}}>My Profile</h2>
+        <div style={{marginBottom:12}}><b>Name:</b> {user.name}</div>
+        <div style={{marginBottom:12}}><b>Email:</b> {user.email}</div>
+      </Card>
+    </Wrapper>
   );
-};
-
-export default Profile;
+}

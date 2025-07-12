@@ -1,7 +1,6 @@
 .wrapper {
   min-height: 100vh;
   background: linear-gradient(120deg, #ece6f7 0%, #d1c4e9 100%);
-  padding: 0;
 }
 .content {
   max-width: 1200px;

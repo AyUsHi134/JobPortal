@@ -1,41 +1,52 @@
-import React, { useEffect, useState } from "react";
-import JobCard from "../components/JobCard";
+import React from "react";
+import { Link } from "react-router-dom";
 
-const Home = () => {
-  const [jobs, setJobs] = useState([]);
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    fetch("/api/remoteok-jobs")
-      .then(res => res.json())
-      .then(data => setJobs(data))
-      .catch(() => setJobs([]));
-  }, []);
-
-  const filteredJobs = jobs.filter(job =>
-    job.position?.toLowerCase().includes(search.toLowerCase())
-  );
-
+export default function Home() {
   return (
-    <div style={{ minHeight: "100vh", background: "#ECE6F7" }}>
-      <div style={{ padding: "2rem", maxWidth: 1200, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 32, color: "#5F43B2", fontWeight: 700 }}>Find Your Dream Job in Startups</h1>
-        <input
-          placeholder="Search by position"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            width: "100%", padding: 14, margin: "2rem 0",
-            borderRadius: 8, border: "1px solid #C9B6F7", background: "#F6F3FA", fontSize: 16
-          }}
-        />
-        <div>
-          {filteredJobs.slice(0, 20).map(job => (
-            <JobCard job={job} key={job.id} />
-          ))}
+    <div style={{
+      minHeight: "70vh",
+      padding: "40px 0",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      background: "#e7e2f7"
+    }}>
+      <h1 style={{
+        color: "#5f43b2",
+        fontWeight: 800,
+        fontSize: "2.5rem",
+        marginBottom: "2rem"
+      }}>
+        Find your dream job in start-up
+      </h1>
+      <div style={{
+        background: "#fff",
+        boxShadow: "0 2px 24px rgba(95,67,178,0.09)",
+        borderRadius: 16,
+        padding: 32,
+        minWidth: 320,
+        marginBottom: 18,
+        color: "#111"
+      }}>
+        <h2 style={{color: "#7b42f6", fontSize: "1.3rem", fontWeight: "bold"}}>Frontend Developer</h2>
+        <div style={{color: "#555", fontSize: "15px"}}>Remote | Full-time</div>
+        <div style={{marginTop: "16px"}}>
+          <Link
+            to="/jobs/1"
+            style={{
+              background: "#2b175d",
+              color: "#fff",
+              padding: "10px 22px",
+              borderRadius: "7px",
+              fontWeight: 500,
+              textDecoration: "none"
+            }}
+          >
+            Apply Now
+          </Link>
         </div>
       </div>
+      {/* Add more job cards here if you want */}
     </div>
   );
-};
-export default Home;
+}

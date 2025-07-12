@@ -1,7 +1,36 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import styled from "styled-components";
+import Button from "../components/Button";
 
-const Login = () => {
+const Wrapper = styled.div`
+  min-height: 100vh;
+  background: linear-gradient(120deg, #ece6f7 0%, #d1c4e9 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+const Card = styled.form`
+  background: #fff;
+  padding: 2.6rem 2.1rem 2rem 2.1rem;
+  border-radius: 14px;
+  box-shadow: 0 2px 28px rgba(95,67,178,0.12);
+  width: 350px;
+  max-width: 96vw;
+  display: flex;
+  flex-direction: column;
+`;
+const Input = styled.input`
+  margin-bottom: 17px;
+  padding: 13px 12px;
+  border-radius: 7px;
+  border: 1.5px solid #b6a3e4;
+  background: #f6f3fa;
+  font-size: 16px;
+  outline: none;
+`;
+
+export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -19,95 +48,46 @@ const Login = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        // Save auth info if needed (localStorage/token)
+        // Store user token if returned: localStorage.setItem("token", data.token);
         alert("Login successful!");
         navigate("/profile");
       } else {
         alert(data.msg || "Login failed");
       }
-    } catch {
+    } catch (err) {
       alert("Login failed");
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ECE6F7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          background: "#fff",
-          padding: "2.5rem",
-          borderRadius: "12px",
-          boxShadow: "0 2px 16px rgba(95,67,178,0.07)",
-          width: "340px",
-        }}
-      >
-        <h2 style={{ fontWeight: "bold", color: "#1A1A1A", marginBottom: "1.5rem" }}>Log in</h2>
-        <input
+    <Wrapper>
+      <Card onSubmit={handleSubmit}>
+        <h2 style={{color: "#5f43b2", fontWeight: "800", fontSize: "1.7rem", marginBottom: "2.1rem"}}>Login</h2>
+        <Input
           name="email"
           value={form.email}
           onChange={handleChange}
           placeholder="Email"
           type="email"
           required
-          style={inputStyle}
         />
-        <input
+        <Input
           name="password"
           value={form.password}
           onChange={handleChange}
           placeholder="Password"
           type="password"
           required
-          style={inputStyle}
         />
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            ...buttonStyle,
-            background: "#5F43B2",
-            opacity: loading ? 0.7 : 1,
-            marginBottom: "1.5rem",
-          }}
-        >
-          {loading ? "Logging in..." : "Log In"}
-        </button>
-        <div style={{ textAlign: "center", fontSize: "15px", color: "#888" }}>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
+        </Button>
+        <div style={{ textAlign: "center", fontSize: "15px", color: "#888", marginTop: "18px" }}>
           Don't have an account?{" "}
-          <Link to="/signup" style={{ color: "#5F43B2", textDecoration: "underline" }}>
-            Sign up
-          </Link>
+          <Link to="/signup" style={{ color: "#7b42f6", textDecoration: "underline" }}>Sign up</Link>
         </div>
-      </form>
-    </div>
+      </Card>
+    </Wrapper>
   );
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "12px",
-  marginBottom: "18px",
-  border: "1px solid #C9B6F7",
-  borderRadius: "7px",
-  background: "#F6F3FA",
-  fontSize: "16px",
-  outline: "none",
-  transition: "border 0.2s",
-};
-
-const buttonStyle = {
-  width: "100%",
-  padding: "13px",
-  border: "none",
-  borderRadius: "7px",
-  color: "#fff",
-  fontWeight: 600,
-  fontSize: "16px",
-  cursor: "pointer",
-  background: "#5F43B2",
-  transition: "background 0.2s",
-};
-
-export default Login;
+}
