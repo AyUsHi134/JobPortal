@@ -1,15 +1,12 @@
-// backend/models/Job.js
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const JobSchema = new mongoose.Schema({
-  title:    { type: String, required: true },
-  company:  String,
+const jobSchema = new mongoose.Schema({
+  title: String,
+  company: String,
   location: String,
-  category: String,
-  url:      String,
-  postedAt: { type: Date, default: Date.now },
-  author:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  type: String,
+  description: String,
+  createdAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.model('Job', JobSchema);
-
+export default mongoose.model("Job", jobSchema);

@@ -1,19 +1,17 @@
-import styled from "styled-components";
-
-const Foot = styled.footer`
-  background: #5f43b2;
-  color: #fff;
-  text-align: center;
-  padding: 1.4rem 0 1.2rem 0;
-  font-size: 1rem;
-  letter-spacing: 0.05em;
-  margin-top: 4rem;
-`;
+// src/components/Footer.jsx
+import React from "react";
 
 export default function Footer() {
   return (
-    <Foot>
-      © {new Date().getFullYear()} JobPortal &mdash; All rights reserved.
-    </Foot>
+    <footer style={{
+      background: "#fff",
+      padding: "24px 0",
+      textAlign: "center",
+      color: "#aaa",
+      fontSize: 15,
+      marginTop: 36
+    }}>
+      © {new Date().getFullYear()} JobPortal. All rights reserved.
+    </footer>
   );
 }

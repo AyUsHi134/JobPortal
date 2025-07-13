@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Container, TextField, Button, Typography, Box, Paper } from "@mui/material";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   function handleChange(e) {
@@ -11,73 +13,57 @@ export default function Signup() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    // TODO: Replace with your backend API
-    alert("Signed up (mock, no backend call)");
-    navigate("/login");
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Signup successful! Please login.");
+        navigate("/login");
+      } else {
+        alert(data.msg || "Signup failed");
+      }
+    } catch {
+      alert("Signup failed");
+    }
+    setLoading(false);
   }
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#eae4f6"
-    }}>
-      <form
-        style={{
-          background: "#fff",
-          borderRadius: "12px",
-          boxShadow: "0 2px 28px rgba(95,67,178,0.12)",
-          padding: "2rem 2.6rem",
-          minWidth: 320,
-        }}
-        onSubmit={handleSubmit}
-      >
-        <h2 style={{ color: "#5f43b2", fontWeight: 800, marginBottom: 20 }}>Sign up</h2>
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={form.name}
-          onChange={handleChange}
-          required
-          style={{ marginBottom: 12, width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          required
-          style={{ marginBottom: 12, width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          required
-          style={{ marginBottom: 18, width: "100%", padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
-        />
-        <button type="submit" style={{
-          background: "#5f43b2",
-          color: "#fff",
-          width: "100%",
-          padding: "12px 0",
-          borderRadius: 7,
-          fontWeight: 700,
-          border: "none",
-          marginBottom: 16
-        }}>
-          Create Account
-        </button>
-        <div style={{ textAlign: "center" }}>
-          Already have an account? <Link to="/login">Log in</Link>
-        </div>
-      </form>
-    </div>
+    <Container maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
+        <Typography variant="h4" color="primary" fontWeight={700} align="center" gutterBottom>
+          Sign Up
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth margin="normal" label="Name" name="name"
+            value={form.name} onChange={handleChange} required
+          />
+          <TextField
+            fullWidth margin="normal" label="Email" name="email" type="email"
+            value={form.email} onChange={handleChange} required
+          />
+          <TextField
+            fullWidth margin="normal" label="Password" name="password" type="password"
+            value={form.password} onChange={handleChange} required
+          />
+          <Button
+            variant="contained" color="primary" type="submit"
+            fullWidth sx={{ mt: 2, borderRadius: 2 }}
+            disabled={loading}
+          >
+            {loading ? "Creating..." : "Create Account"}
+          </Button>
+          <Box mt={2} textAlign="center">
+            Already have an account? <Link to="/login">Login</Link>
+          </Box>
+        </Box>
+      </Paper>
+    </Container>
   );
 }

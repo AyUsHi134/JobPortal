@@ -1,50 +1,111 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Container, Card, CardContent, Typography, Button } from "@mui/material";
 
 export default function JobDetail() {
-  // In real app, you'd fetch job by ID here using useParams.
-  // We'll just use dummy content.
   const { id } = useParams();
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    setNotFound(false);
+
+    // Try local DB first
+    fetch(`http://localhost:5000/api/jobs/${id}`)
+      .then(res => {
+        if (res.status === 404) {
+          // Try remote API fallback (for remote-xxxx IDs)
+          if (id.startsWith("remote-")) {
+            return fetch(`https://www.arbeitnow.com/api/job/${id.replace("remote-", "")}`)
+              .then(res2 => res2.json())
+              .then(data2 => {
+                if (!data2.job) {
+                  setNotFound(true);
+                  setLoading(false);
+                  return;
+                }
+                setJob({
+                  ...data2.job,
+                  description: data2.job.description || ""
+                });
+                setLoading(false);
+              });
+          } else {
+            setNotFound(true);
+            setLoading(false);
+            return;
+          }
+        }
+        return res.json().then(data => {
+          setJob(data);
+          setLoading(false);
+        });
+      })
+      .catch(() => {
+        setNotFound(true);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 8 }}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" align="center">Loading...</Typography>
+          </CardContent>
+        </Card>
+      </Container>
+    );
+  }
+
+  if (notFound || !job) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 8 }}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" color="error" align="center">Job Not Found</Typography>
+          </CardContent>
+        </Card>
+      </Container>
+    );
+  }
+
+  // Render remote HTML if remote job
+  const isRemote = id.startsWith("remote-");
 
   return (
-    <div style={{
-      minHeight: "70vh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      background: "#ede7f6"
-    }}>
-      <div style={{
-        background: "#fff",
-        marginTop: "3rem",
-        padding: "2.5rem",
-        borderRadius: "1rem",
-        boxShadow: "0 2px 24px rgba(95,67,178,0.10)",
-        minWidth: 340
-      }}>
-        <h2 style={{color: "#7b42f6", fontWeight: 700}}>Frontend Developer</h2>
-        <div style={{color: "#888", marginBottom: 10}}>Remote | Full-time</div>
-        <p style={{color: "#444", lineHeight: "1.7"}}>
-          {/* You can use job ID if fetching dynamically */}
-          Job ID: {id}
-          <br />
-          We are looking for a passionate Frontend Developer to join our team! Work with modern React, beautiful UI, and ship real products.
-        </p>
-        <button
-          style={{
-            background: "#2b175d",
-            color: "#fff",
-            padding: "12px 32px",
-            border: "none",
-            borderRadius: "8px",
-            fontWeight: 600,
-            marginTop: "1.6rem",
-            cursor: "pointer"
-          }}
-        >
-          Apply Now
-        </button>
-      </div>
-    </div>
+    <Container maxWidth="md" sx={{ mt: 8 }}>
+      <Card>
+        <CardContent>
+          <Typography variant="h4" fontWeight={900} color="primary" gutterBottom>
+            {job.title}
+          </Typography>
+          <Typography color="text.secondary" gutterBottom>
+            {job.company || job.company_name} | {job.location} | {job.type}
+          </Typography>
+          <div style={{ marginTop: 16 }}>
+            {isRemote ? (
+              <div dangerouslySetInnerHTML={{ __html: job.description }} />
+            ) : (
+              <Typography sx={{ whiteSpace: 'pre-wrap' }}>{job.description}</Typography>
+            )}
+          </div>
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3 }}
+            fullWidth
+            href={job.url || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Apply Now
+          </Button>
+        </CardContent>
+      </Card>
+    </Container>
   );
 }
