@@ -1,11 +1,16 @@
 import express from "express";
-import Job from "../models/job.js";
+import Job from "../models/Job.js";
 
 const router = express.Router();
 
 router.get("/", async (req, res) => {
-  const jobs = await Job.find();
+  try {
+   const jobs = await Job.find();
   res.json(jobs);
+} catch(error) {
+  res.status(500).json({ error: err.message });
+}
+  
 });
 
 router.post("/", async (req, res) => {

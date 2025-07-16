@@ -6,7 +6,11 @@ const jobSchema = new mongoose.Schema({
   location: String,
   type: String,
   description: String,
+  postedAt: String,
+  salary: String,
+  skills: [String],
+  applyLink: String,
   createdAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.model("Job", jobSchema);
+export default mongoose.models.Job || mongoose.model("Job", jobSchema);
