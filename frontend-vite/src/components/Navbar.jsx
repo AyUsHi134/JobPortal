@@ -1,6 +1,11 @@
 import React from "react";
 import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
+import HomeIcon from '@mui/icons-material/Home';
+import LoginIcon from '@mui/icons-material/Login';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 export default function Navbar() {
   const token = localStorage.getItem("token");
@@ -12,7 +17,12 @@ export default function Navbar() {
   }
 
   return (
-    <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: "2px solid #ece4fa" }}>
+    <AppBar
+      position="static"
+      color="inherit"
+      elevation={0}
+      sx={{ borderBottom: "2px solid #ece4fa" }}
+    >
       <Toolbar sx={{ justifyContent: "space-between" }}>
         <Typography
           component={Link}
@@ -25,21 +35,40 @@ export default function Navbar() {
           JobPortal
         </Typography>
         <Box>
-          <Button component={Link} to="/" color="primary">
+          <Button
+            component={Link}
+            to="/"
+            color="primary"
+            startIcon={<HomeIcon />}
+          >
             Home
           </Button>
           {token ? (
             <>
-              <Button component={Link} to="/profile" color="primary">
+              <Button
+                component={Link}
+                to="/profile"
+                color="primary"
+                startIcon={<PersonIcon />}
+              >
                 Profile
               </Button>
-              <Button onClick={handleLogout} color="primary">
+              <Button
+                onClick={handleLogout}
+                color="primary"
+                startIcon={<LogoutIcon />}
+              >
                 Logout
               </Button>
             </>
           ) : (
             <>
-              <Button component={Link} to="/login" color="primary">
+              <Button
+                component={Link}
+                to="/login"
+                color="primary"
+                startIcon={<LoginIcon />}
+              >
                 Login
               </Button>
               <Button
@@ -47,6 +76,7 @@ export default function Navbar() {
                 to="/signup"
                 variant="contained"
                 color="primary"
+                startIcon={<PersonAddIcon />}
                 sx={{ ml: 2, fontWeight: 700 }}
               >
                 Signup

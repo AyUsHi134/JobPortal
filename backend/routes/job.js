@@ -6,6 +6,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
    const jobs = await Job.find();
+    console.log("Fetched jobs:", jobs);
   res.json(jobs);
 } catch(error) {
   res.status(500).json({ error: err.message });
