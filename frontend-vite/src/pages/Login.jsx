@@ -59,7 +59,11 @@ export default function Login() {
             <Typography sx={{ mt: 2 }}>
               Don&apos;t have an account? <Link to="/signup">Sign up</Link>
             </Typography>
-          </form>
+            <Typography sx={{ mt: 1 }}>
+            <Link to="/forgot-password" style={{ fontSize: "0.95rem" }}>Forgot password?</Link>
+            </Typography>
+
+           </form>
         </CardContent>
       </Card>
     </Container>

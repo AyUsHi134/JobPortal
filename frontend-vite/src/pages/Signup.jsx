@@ -18,7 +18,6 @@ export default function Signup() {
     });
     const data = await res.json();
     if (res.ok) {
-      alert("Signup successful! Please log in.");
       navigate("/login");
     } else {
       alert(data.msg || "Signup failed");

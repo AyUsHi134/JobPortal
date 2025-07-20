@@ -8,6 +8,8 @@ import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import AddJob from "./pages/AddJob";
 import JobDetail from "./pages/JobDetail";
+import ForgotPassword from "./pages/ForgotPassword";
+
 
 export default function App() {
   return (
@@ -20,6 +22,8 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/add-job" element={<AddJob />} />
         <Route path="/jobs/:id" element={<JobDetail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
       </Routes>
     </>
   );
