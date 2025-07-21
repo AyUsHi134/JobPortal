@@ -3,10 +3,8 @@ import { Box, Typography } from "@mui/material";
 
 export default function Footer() {
   return (
-    <Box sx={{ py: 4, textAlign: "center", color: "#888" }}>
-      <Typography>
-        © {new Date().getFullYear()} JobPortal. Made with ❤️ for startup talent.
-      </Typography>
+    <Box sx={{ bgcolor: "#7046d3", color: "#fff", py: 4, textAlign: "center", mt: 6 }}>
+      <Typography fontWeight={600}>&copy; {new Date().getFullYear()} JobPortal | Built with MERN, MUI, SCSS 💜</Typography>
     </Box>
   );
 }

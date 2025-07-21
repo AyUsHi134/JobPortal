@@ -1,74 +1,55 @@
-import React, { useState } from "react";
-import { Box, TextField, Button, MenuItem, Paper } from "@mui/material";
+import React from "react";
+import { Box, TextField, MenuItem, Button, InputAdornment } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 
-const locations = ["All", "Remote", "Onsite", "Hybrid", "Bangalore", "Delhi", "Mumbai"];
-const types = ["All", "Full-time", "Part-time", "Internship", "Contract"];
-
-export default function SearchBar({ onSearch }) {
-  const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState({ location: "All", type: "All" });
-
-  function handleSubmit(e) {
-    e.preventDefault();
-    onSearch(query, filters);
-  }
-
+export default function SearchBar({ filters, setFilters, onSearch }) {
   return (
-    <Paper
-      sx={{
-        p: 2,
-        display: "flex",
-        gap: 2,
-        alignItems: "center",
-        mb: 3,
-        mx: "auto",
-        maxWidth: 700,
-        boxShadow: 2,
-        borderRadius: 2,
-      }}
-      component="form"
-      onSubmit={handleSubmit}
-    >
+    <Box className="search-bar-wrapper" sx={{
+      bgcolor: "#fff",
+      p: 2, borderRadius: 3, boxShadow: 2,
+      display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center",
+      maxWidth: 700, margin: "auto"
+    }}>
       <TextField
-        placeholder="Search jobs, companies..."
-        value={query}
-        onChange={e => setQuery(e.target.value)}
         variant="outlined"
+        placeholder="Search jobs, companies..."
+        value={filters.search}
+        onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
         size="small"
-        sx={{ flex: 2, minWidth: 0 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon color="primary" />
+            </InputAdornment>
+          )
+        }}
+        sx={{ minWidth: 160 }}
       />
       <TextField
-        select
-        label="Location"
+        select label="Location" size="small"
         value={filters.location}
         onChange={e => setFilters(f => ({ ...f, location: e.target.value }))}
-        size="small"
-        sx={{ flex: 1, minWidth: 100 }}
+        sx={{ minWidth: 110 }}
       >
-        {locations.map(loc => (
-          <MenuItem key={loc} value={loc}>{loc}</MenuItem>
-        ))}
+        <MenuItem value="">All</MenuItem>
+        <MenuItem value="Remote">Remote</MenuItem>
+        <MenuItem value="Gurgaon">Gurgaon</MenuItem>
+        <MenuItem value="Bangalore">Bangalore</MenuItem>
       </TextField>
       <TextField
-        select
-        label="Type"
+        select label="Type" size="small"
         value={filters.type}
         onChange={e => setFilters(f => ({ ...f, type: e.target.value }))}
-        size="small"
-        sx={{ flex: 1, minWidth: 100 }}
+        sx={{ minWidth: 110 }}
       >
-        {types.map(type => (
-          <MenuItem key={type} value={type}>{type}</MenuItem>
-        ))}
+        <MenuItem value="">All</MenuItem>
+        <MenuItem value="Full-time">Full-time</MenuItem>
+        <MenuItem value="Contract">Contract</MenuItem>
+        <MenuItem value="Internship">Internship</MenuItem>
       </TextField>
-      <Button
-        type="submit"
-        variant="contained"
-        color="primary"
-        sx={{ px: 3, fontWeight: 700, borderRadius: 2 }}
-      >
+      <Button variant="contained" color="primary" sx={{ fontWeight: 700 }} onClick={onSearch}>
         Search
       </Button>
-    </Paper>
+    </Box>
   );
 }

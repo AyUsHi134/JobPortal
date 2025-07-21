@@ -1,29 +1,14 @@
-import { Box, Typography } from "@mui/material";
+import React from "react";
 
 export default function HeroSection() {
   return (
-    <Box
-      sx={{
-        bgcolor: "#ebe4fa",
-        py: 6,
-        textAlign: "center",
-        borderRadius: "0 0 32px 32px",
-        mb: 2,
-      }}
-    >
-      <Typography
-        variant="h2"
-        fontWeight={900}
-        color="primary"
-        sx={{ mb: 2, fontSize: { xs: "2rem", md: "3.3rem" } }}
-      >
-        Your Next Role? Already Here.
-      </Typography>
-      <Typography color="text.secondary" fontSize="1.35rem">
-        New jobs, hot startups, and future-ready openings await.
-
-x1
-      </Typography>
-    </Box>
+    <div className="hero-section">
+      <h1 style={{ fontWeight: 900, fontSize: "2.5rem" }}>
+        Your Next Career Move Awaits!
+      </h1>
+      <p style={{ color: "#5f43b2", marginTop: 12, fontSize: 18 }}>
+        Explore startup, remote, on-site, and big company openings. Fresh, ongoing, and future jobs—all in one place.
+      </p>
+    </div>
   );
 }

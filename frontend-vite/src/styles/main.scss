@@ -1,0 +1,67 @@
+@use './variables' as *;
+@use './mixins' as *;
+
+body {
+  background: $background;
+  color: $text-dark;
+  font-family: $font-main;
+}
+
+h1, h2, h3, h4, h5 {
+  color: $primary-color;
+  font-family: $font-main;
+}
+
+.hero-section {
+  background: $accent-color;
+  padding: 48px 0 20px 0;
+  text-align: center;
+}
+
+.search-bar-wrapper {
+  margin-top: -35px;
+  display: flex;
+  justify-content: center;
+}
+
+.job-card {
+  @include card;
+  min-height: 220px;
+  margin-bottom: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.features-section {
+  background: #fff;
+  padding: 54px 0;
+  margin-top: 40px;
+  .feature-card {
+    @include card;
+    padding: 24px 12px;
+    text-align: center;
+  }
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .hero-section {
+    padding: 24px 0 8px 0;
+  }
+  .job-card {
+    min-height: 180px;
+    padding: 13px;
+  }
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #ece4fa 0%, #7046d3 100%);
+}
+.job-card {
+  border-radius: 18px;
+  box-shadow: 0 2px 18px rgba(112, 70, 211, 0.09);
+  background: #fff;
+  font-family: 'Inter', Arial, sans-serif;
+}

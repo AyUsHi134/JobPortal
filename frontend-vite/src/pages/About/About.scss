@@ -1,0 +1,22 @@
+.about-page {
+  padding: 3rem 6vw 5rem 6vw;
+  background: #faf7ff;
+  h2 {
+    color: #7046d3;
+    font-size: 2.3rem;
+    font-weight: 900;
+    margin-bottom: 1.2rem;
+  }
+  p {
+    font-size: 1.15rem;
+    margin-bottom: 2rem;
+    color: #51308d;
+  }
+  .about__highlight {
+    display: flex;
+    gap: 2.5rem;
+    font-weight: 700;
+    color: #2a223e;
+    span { background: #ece4fa; padding: .7em 1.4em; border-radius: 16px; }
+  }
+}

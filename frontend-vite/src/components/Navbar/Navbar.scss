@@ -1,0 +1,46 @@
+@use '../styles/variables' as *;
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 2rem;
+  background: #fff;
+  border-bottom: 1.5px solid $accent-color;
+
+  .navbar__brand a {
+    font-weight: 900;
+    font-size: 2rem;
+    color: $primary-color;
+    text-decoration: none;
+  }
+
+  .navbar__links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    list-style: none;
+
+    li a {
+      color: $primary-color;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.2s;
+
+      &:hover {
+        color: $text-light;
+      }
+    }
+
+    .signup-btn {
+      padding: 0.5rem 1.2rem;
+      background: $primary-color;
+      color: #fff;
+      border-radius: $border-radius;
+      margin-left: 0.6rem;
+      &:hover {
+        background: $text-light;
+      }
+    }
+  }
+}

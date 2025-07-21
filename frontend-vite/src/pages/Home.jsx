@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Box, Container, Typography, Button, Grid, TextField, MenuItem, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import JobCard from "../components/JobCard";
+import JobCard from "../components/JobCard/JobCard";
 import NewsletterSection from "../components/NewsletterSection";
 import Footer from "../components/Footer";
-import JobCategories from "../components/JobCategories"; // NEW! (create this if you want categories)
+import Navbar from "../components/Navbar/Navbar";
+
 
 const filtersDefault = {
   search: "",
@@ -27,7 +28,7 @@ export default function Home() {
     setJobs(data);
   };
 
-  // Filter jobs
+  // Filtering logic
   const filteredJobs = jobs.filter((job) => {
     return (
       (filters.search === "" || job.title.toLowerCase().includes(filters.search.toLowerCase())) &&
@@ -38,34 +39,42 @@ export default function Home() {
 
   return (
     <>
-      {/* Hero Section */}
-      <Box sx={{ bgcolor: "#ece4fa", py: 6, mb: 2 }}>
-        <Container>
-          <Typography variant="h3" fontWeight={900} color="primary" align="center" gutterBottom>
-            Your Next Role? Already Here.
-          </Typography>
-          <Typography variant="h6" align="center" color="text.secondary" sx={{ mb: 3 }}>
-            New jobs, hot startups, and future-ready openings await. x1
-          </Typography>
-        </Container>
-      </Box>
+      {/* Gradient Hero Section */}
+      <Box sx={{
+  background: "linear-gradient(135deg, #c3abfa 0%, #7046d3 100%)",
+  py: 7,
+  mb: 2
+}}>
+  <Container>
+    <Typography variant="h3" fontWeight={900} color="#462478" align="center" gutterBottom>
+      Your Next Career Move Awaits!
+    </Typography>
+    <Typography variant="h6" align="center" color="#462478" sx={{ mb: 3, opacity: 0.7 }}>
+      Explore startup, remote, on-site, and big company openings. Fresh, ongoing, and future jobs—all in one place.
+    </Typography>
+  </Container>
+</Box>
 
-      {/* Search Bar & Filters */}
-      <Container sx={{ mb: 3 }}>
-        <Box
-          sx={{
-            bgcolor: "#fff",
-            p: 2,
-            mb: 2,
-            borderRadius: 3,
-            boxShadow: 2,
-            display: "flex",
-            gap: 2,
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+
+      {/* Search Bar & Filters, floating over the gradient */}
+     <Container sx={{ mb: 3 }}>
+  <Box
+    sx={{
+      bgcolor: "#fff",
+      p: 2,
+      mb: 2,
+      borderRadius: 3,
+      boxShadow: 2,
+      display: "flex",
+      gap: 2,
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "center",
+      maxWidth: "900px",
+      mx: "auto"
+    }}
+  >
+
           <TextField
             variant="outlined"
             placeholder="Search jobs, companies..."
@@ -93,7 +102,6 @@ export default function Home() {
             <MenuItem value="Remote">Remote</MenuItem>
             <MenuItem value="Gurgaon">Gurgaon</MenuItem>
             <MenuItem value="Bangalore">Bangalore</MenuItem>
-            {/* Add more as needed */}
           </TextField>
           <TextField
             select
@@ -119,8 +127,8 @@ export default function Home() {
         </Box>
       </Container>
 
-      {/* Recent Jobs */}
-      <Container sx={{ mb: 5 }}>
+      {/* Recent Jobs Section */}
+      <Container>
         <Typography variant="h5" fontWeight={700} color="primary" sx={{ mb: 2 }}>
           Recent Jobs
         </Typography>
@@ -132,24 +140,21 @@ export default function Home() {
           ))}
         </Grid>
         {visibleCount < filteredJobs.length && (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+          <Box display="flex" justifyContent="center" mt={4}>
             <Button
               variant="outlined"
               color="primary"
-              onClick={() => setVisibleCount((prev) => prev + 6)}
+              sx={{ fontWeight: 600, borderRadius: 2, px: 5 }}
+              onClick={() => setVisibleCount((prev) => Math.min(prev + 6, filteredJobs.length))}
             >
-              View More Jobs
+              View More
             </Button>
           </Box>
         )}
       </Container>
 
-      {/* Job Categories Section */}
-      {/* Uncomment below if you want categories */}
-      {/* <JobCategories /> */}
-
-      {/* Why Choose Us */}
-      <Box sx={{ bgcolor: "#fff", py: 6, mt: 5 }}>
+      {/* Features Section */}
+      <Box sx={{ bgcolor: "#fff", py: 6, mt: 7 }}>
         <Container>
           <Typography variant="h5" fontWeight={700} align="center" color="primary" sx={{ mb: 2 }}>
             Why Choose Us?
@@ -183,10 +188,7 @@ export default function Home() {
         </Container>
       </Box>
 
-      {/* Newsletter Section */}
       <NewsletterSection />
-
-      {/* Footer */}
       <Footer />
     </>
   );

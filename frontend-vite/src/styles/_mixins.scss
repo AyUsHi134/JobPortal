@@ -1,0 +1,9 @@
+// src/styles/_mixins.scss
+@use './variables' as *;
+
+@mixin card {
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  background: #fff;
+  transition: box-shadow .18s;
+}

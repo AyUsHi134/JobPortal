@@ -1,0 +1,33 @@
+.findjob-container {
+  display: flex;
+  padding: 2rem 4vw;
+  gap: 2.5rem;
+  background: #faf7ff;
+  min-height: 70vh;
+  aside.filters {
+    min-width: 220px;
+    background: #fff;
+    padding: 2rem 1rem;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(112,70,211,.06);
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    h3 { color: #7046d3; font-weight: 800; }
+    input, select {
+      border-radius: 8px;
+      border: 1px solid #ece4fa;
+      padding: .7em 1em;
+      font-size: 1em;
+    }
+  }
+  section.job-listings {
+    flex: 1;
+    h2 { color: #51308d; font-weight: 700; margin-bottom: 1.5rem; }
+    .job-listings__grid {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    }
+  }
+}

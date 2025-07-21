@@ -1,0 +1,30 @@
+.jobcard {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 18px rgba(112,70,211,0.09);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  min-width: 300px;
+  h3 { color: #7046d3; font-weight: 900; }
+  .meta {
+    color: #a891d4;
+    font-weight: 700;
+    font-size: 1.05em;
+    margin-bottom: .5em;
+    span { margin-right: 5px; }
+  }
+  .apply-btn {
+    margin-top: .6em;
+    background: #7046d3;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    padding: .7em 1.6em;
+    cursor: pointer;
+    transition: background .18s;
+    &:hover { background: #51308d; }
+  }
+}

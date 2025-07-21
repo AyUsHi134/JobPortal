@@ -1,0 +1,39 @@
+.contact-page {
+  padding: 3rem 6vw 5rem 6vw;
+  background: #faf7ff;
+  h2 {
+    color: #7046d3;
+    font-size: 2.1rem;
+    font-weight: 900;
+    margin-bottom: 1.1rem;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.3rem;
+    max-width: 400px;
+    input, textarea {
+      border-radius: 9px;
+      border: 1px solid #ece4fa;
+      padding: .7em 1em;
+      font-size: 1.04em;
+    }
+    button {
+      background: #7046d3;
+      color: #fff;
+      padding: .7em 1.5em;
+      border: none;
+      border-radius: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .17s;
+      &:hover { background: #51308d; }
+    }
+  }
+  .contact-info {
+    margin-top: 2.5rem;
+    color: #5f43b2;
+    font-weight: 600;
+    span { display: block; margin-bottom: .3em; }
+  }
+}
