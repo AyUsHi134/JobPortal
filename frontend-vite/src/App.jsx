@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/Navbar/Navbar";
 import FindJob from "./pages/FindJob/FindJob";
 import About from "./pages/About/About";
 import Contact from "./pages/Contact/Contact";
@@ -11,7 +11,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import AddJob from "./pages/AddJob";
-import JobDetail from "./pages/JobDetail";
+import JobDetail from "./pages/JobDetail/JobDetail";
 import ForgotPassword from "./pages/ForgotPassword";
 
 

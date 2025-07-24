@@ -1,0 +1,30 @@
+.job-detail-page {
+  background: linear-gradient(120deg, #f7f3ff 0%, #ece4fa 100%);
+  min-height: 100vh;
+  padding-bottom: 2rem;
+
+  .job-header {
+    margin-bottom: 2rem;
+  }
+
+  .job-body {
+    .about-section, .team-section, .culture-section {
+      background: #faf7ff;
+      border-radius: 14px;
+      padding: 1.3rem 1rem;
+      box-shadow: 0 2px 12px rgba(112, 70, 211, 0.08);
+      margin-bottom: 1.2rem;
+    }
+  }
+
+  .divider {
+    color: #d1c4e9;
+    margin: 0 0.5rem;
+  }
+}
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #5f43b2;
+  margin-top: 40px;
+}

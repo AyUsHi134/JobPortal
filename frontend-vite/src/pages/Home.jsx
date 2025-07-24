@@ -129,7 +129,7 @@ export default function Home() {
 
       {/* Recent Jobs Section */}
       <Container>
-        <Typography variant="h5" fontWeight={700} color="primary" sx={{ mb: 2 }}>
+        <Typography variant="h5" fontWeight={700} color="#5f43b2" align="center" sx={{ mb: 2 }}>
           Recent Jobs
         </Typography>
         <Grid container spacing={3} justifyContent="center">
