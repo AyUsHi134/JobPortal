@@ -1,4 +1,4 @@
-// backend/controllers/jobs.js
+
 import axios from 'axios';
 import Job   from '../models/Job.js';
 import User  from '../models/User.js';

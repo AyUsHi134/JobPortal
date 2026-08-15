@@ -1,4 +1,4 @@
-// backend/controllers/auth.js
+
 import bcrypt from 'bcryptjs';
 import jwt    from 'jsonwebtoken';
 import User   from '../models/User.js';
@@ -12,7 +12,7 @@ export async function register(req, res) {
     const hash = await bcrypt.hash(password, 10);
     const user = await new User({ name, email, password: hash }).save();
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    // send back token + user info
+
     res.json({ token, user: { id: user._id, name, email } });
   } catch (err) {
     console.error(err);

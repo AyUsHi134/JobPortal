@@ -1,28 +1,84 @@
-import React from "react";
-import { Card, CardContent, Typography, Button } from "@mui/material";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; 
+import "./JobCard.scss";
 
-export default function JobCard({ job }) {
+export default function JobCard({ job, currentUser }) {
+  const [isSaved, setIsSaved] = useState(false);
+  const navigate = useNavigate(); 
+
+  useEffect(() => {
+    const checkSaved = async () => {
+      if (!currentUser?._id) return;
+      const res = await fetch("http://localhost:5000/api/user/issaved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUser._id, jobId: job._id }),
+      });
+      const data = await res.json();
+      setIsSaved(data.isSaved);
+    };
+    checkSaved();
+  }, [currentUser, job._id]);
+
+
+  const handleSave = async () => {
+    if (!currentUser?._id) {
+      alert("Please log in to save jobs!");
+      return;
+    }
+    const res = await fetch("http://localhost:5000/api/user/savejob", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: currentUser._id, jobId: job._id }),
+    });
+    if (res.ok) setIsSaved(true);
+  };
+
+
+  const handleApply = () => {
+    navigate(`/job/${job._id}`);
+  };
+
   return (
-    <Card className="job-card" elevation={3}>
-      <CardContent>
-        <Typography variant="h6" color="primary" fontWeight={800} gutterBottom>
-          {job.title}
-        </Typography>
-        <Typography color="text.secondary" fontWeight={600} gutterBottom>
-          {job.company} | {job.location} | {job.type}
-        </Typography>
-        <Button
-          component={Link}
-          to={`/jobs/${job._id}`}
-          variant="contained"
-          color="primary"
-          sx={{ mt: 2, borderRadius: 2 }}
-          fullWidth
+    <div className="modern-job-card">
+     
+      <div className="job-card-header">
+        <div className="job-category">
+          <span className="category-dot"></span>
+          {job.category || "Software Engineering"}
+        </div>
+      </div>
+
+      
+      <div className="job-company-row">
+        {job.logo && (
+          <img src={job.logo} alt={job.company} className="job-logo" />
+        )}
+        <span className="job-company">{job.company}</span>
+      </div>
+
+      
+      <div className="job-title">{job.title}</div>
+
+      
+      <div className="job-card-meta">
+        <div className="job-location">
+          <b>{job.location}</b>
+        </div>
+        <span className="job-type">{job.type}</span>
+      </div>
+
+      
+      <div className="job-card-actions centered">
+        <button className="apply-btn" onClick={handleApply}>Apply</button> {/* ✅ updated */}
+        <button
+          className={`save-btn${isSaved ? " saved" : ""}`}
+          onClick={handleSave}
+          disabled={isSaved}
         >
-          Apply Now
-        </Button>
-      </CardContent>
-    </Card>
+          {isSaved ? "Saved" : "Save"}
+        </button>
+      </div>
+    </div>
   );
 }

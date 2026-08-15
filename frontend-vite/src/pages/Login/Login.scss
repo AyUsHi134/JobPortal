@@ -1,0 +1,113 @@
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5fc;
+
+  .login-form {
+    background: linear-gradient(to bottom right, #ffffff, #f7f3ff);
+    padding: 2.5rem;
+    border-radius: 12px;
+    width: 400px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+
+    h2 {
+      text-align: center;
+      color: #6a0dad;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    input {
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 1.2rem;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    .password-wrapper {
+      position: relative;
+
+      input {
+        width: 100%;
+        padding-right: 3rem;
+      }
+
+      .toggle-password {
+        position: absolute;
+        top: 50%;
+        right: 1rem;
+        transform: translateY(-50%);
+        cursor: pointer;
+
+        img {
+          width: 22px;
+          height: 22px;
+          opacity: 0.7;
+          transition: opacity 0.2s ease;
+        }
+
+        &:hover img {
+          opacity: 1;
+        }
+      }
+    }
+
+    button {
+      background-color: #7e30e1;
+      color: white;
+      border: none;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #6a23d4;
+      }
+    }
+
+    .login-links {
+      margin-top: 1rem;
+      text-align: center;
+
+      .forgot-link {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #7e30e1;
+        font-size: 0.9rem;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      p {
+        font-size: 0.9rem;
+
+        a {
+          color: #7e30e1;
+          text-decoration: none;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+  }
+}

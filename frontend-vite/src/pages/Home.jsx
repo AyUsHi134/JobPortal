@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Box, Container, Typography, Button, Grid, TextField, MenuItem, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import JobCard from "../components/JobCard/JobCard";
+import "../components/JobCard/JobCard.scss";
 import NewsletterSection from "../components/NewsletterSection";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar/Navbar";
+import JobCard from "../components/JobCard/JobCard";
+
 
 
 const filtersDefault = {
@@ -129,29 +131,34 @@ export default function Home() {
 
       {/* Recent Jobs Section */}
       <Container>
-        <Typography variant="h5" fontWeight={700} color="#5f43b2" align="center" sx={{ mb: 2 }}>
-          Recent Jobs
-        </Typography>
-        <Grid container spacing={3} justifyContent="center">
-          {filteredJobs.slice(0, visibleCount).map((job) => (
-            <Grid item xs={12} sm={6} md={4} key={job._id}>
-              <JobCard job={job} />
-            </Grid>
-          ))}
-        </Grid>
-        {visibleCount < filteredJobs.length && (
-          <Box display="flex" justifyContent="center" mt={4}>
-            <Button
-              variant="outlined"
-              color="primary"
-              sx={{ fontWeight: 600, borderRadius: 2, px: 5 }}
-              onClick={() => setVisibleCount((prev) => Math.min(prev + 6, filteredJobs.length))}
-            >
-              View More
-            </Button>
-          </Box>
-        )}
-      </Container>
+  <Typography variant="h5" fontWeight={700} color="#5f43b2" align="center" sx={{ mb: 3}}>
+    Recent Jobs
+  </Typography>
+
+  {/* FLEXBOX CONTAINER */}
+  <div className="jobs-list">
+    {filteredJobs.slice(0, visibleCount).map((job) => (
+      <div className="jobs-list-item" key={job._id}>
+        <JobCard job={job} />
+      </div>
+    ))}
+  </div>
+
+  {/* VIEW MORE BUTTON */}
+  {visibleCount < filteredJobs.length && (
+    <Box display="flex" justifyContent="center" mt={4}>
+      <Button
+        variant="outlined"
+        color="primary"
+        sx={{ fontWeight: 600, borderRadius: 2, px: 5 }}
+        onClick={() => setVisibleCount((prev) => Math.min(prev + 6, filteredJobs.length))}
+      >
+        View More
+      </Button>
+    </Box>
+  )}
+</Container>
+
 
       {/* Features Section */}
       <Box sx={{ bgcolor: "#fff", py: 6, mt: 7 }}>
