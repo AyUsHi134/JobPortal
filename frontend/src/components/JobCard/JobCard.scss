@@ -1,3 +1,13 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+// Phase 2G-2: JobCard rebuilt onto the shared green design system
+// (_variables.scss / Phase 2G-1) — every color below reads from a shared
+// token, no new one-off hex value is introduced. See PHASE_2G2_REPORT.md
+// for the full rationale (badge rules, location/skill honesty, save/
+// navigation behavior). Layout is unchanged from Phase 2F's
+// `.jobs-list`/`.jobs-list-item` grid wrapper — only the card itself and
+// its internal structure changed.
 
 .jobs-list {
   display: flex;
@@ -15,15 +25,19 @@
   display: flex;
 }
 
-
-@media (max-width: 1050px) {
+// A percentage-of-container basis (not vw) so the two items plus the row's
+// own 2.4rem gap always sum to exactly the container's real content width,
+// regardless of the outer page padding subtracted from the viewport — the
+// previous `47vw` ignored that padding and could overflow into a forced
+// single column instead of the intended 2-per-row tablet layout.
+@include laptop-down {
   .jobs-list-item {
-    flex: 0 1 47vw;
+    flex: 0 1 calc(50% - 1.2rem);
   }
 }
-@media (max-width: 700px) {
+@include tablet-down {
   .jobs-list-item {
-    flex: 0 1 98vw;
+    flex: 0 1 100%;
     margin: 0 auto;
   }
 }
@@ -33,135 +47,229 @@
   width: 100%;
   max-width: 340px;
   min-height: 320px;
-  background: linear-gradient(135deg, #ede6fa 0%, #f8f7ff 100%);
-  border-radius: 22px;
-  box-shadow: 0 2px 18px rgba(126, 85, 255, 0.09);
-  padding: 1.4rem 1.3rem 1.4rem 1.3rem;
+  background: $surface-color;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  padding: 1.4rem 1.3rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   margin: 24px auto;
   position: relative;
-  transition: box-shadow 0.2s;
-  gap: 0.8rem;
-  border: 1.5px solid #ebe3fb;
-  &:hover { box-shadow: 0 6px 36px rgba(126,85,255, 0.13); }
+  transition: box-shadow 0.2s, border-color 0.2s;
+  gap: 0.7rem;
+  border: 1.5px solid $border-color;
 
-  .job-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.4rem;
-    .job-category {
-      font-size: 1em;
-      color: #7b59c6;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      .category-dot {
-        width: 8px;
-        height: 8px;
-        background: #be9cff;
-        border-radius: 50%;
-        margin-right: 8px;
-      }
-    }
-    .save-icon {
-      color: #b8a5f5;
-      font-size: 1.2em;
-      cursor: pointer;
-      transition: color 0.15s;
-      &:hover { color: #8457e7; }
-    }
+  &:hover {
+    box-shadow: 0 6px 28px rgba(20, 60, 42, 0.14);
+    border-color: $primary-color;
   }
-  .job-title {
-    margin: 12px 0 16px 0;
-    font-size: 1.25em;
-    font-weight: 700;
-    color: #563ba7;
-    letter-spacing: 0.01em;
-  }
-  .job-card-meta {
+
+  // 1. Company
+  .job-company-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 14px;
-    .job-location {
-      display: flex;
-      align-items: center;
-      color: #6d4cbe;
-      font-size: 1.07em;
-      .loc-icon {
-        margin-right: 7px;
-        color: #b19bf9;
-        font-size: 1.15em;
-      }
-    }
-    .job-type {
-      background: #f2eaff;
-      color: #a276e8;
-      font-size: 1em;
+    gap: 10px;
+
+    .job-logo {
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
-      padding: 4px 16px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      margin-left: 10px;
-    }
-  }
-  .job-card-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 18px;
-    .job-posted {
-      color: #b3a2dc;
-      font-size: 0.99em;
-      margin-bottom: 3px;
+      background: $surface-color;
+      object-fit: contain;
+      border: 1.5px solid $border-color;
+      flex-shrink: 0;
     }
     .job-company {
       font-weight: 600;
-      color: #987fe7;
-      font-size: 1.06em;
-      margin-top: 3px;
-    }
-    .job-logo {
-      width: 54px;
-      height: 54px;
-      border-radius: 15px;
-      background: #fff;
-      object-fit: contain;
-      border: 1.5px solid #ebe3fb;
-      margin-left: 12px;
-      box-shadow: 0 1px 4px rgba(126,85,255,0.07);
+      color: $text-muted;
+      font-size: 0.92em;
+      @include wrap-safely;
     }
   }
-  .job-card-actions {
-    margin-top: 18px;
+
+  // 2. Job title
+  .job-title {
+    margin: 0;
+    font-size: 1.16em;
+    font-weight: 700;
+    color: $text-dark;
+    letter-spacing: 0.01em;
+    line-height: 1.3;
+    @include wrap-safely;
+  }
+
+  // 3. Location
+  .job-location {
+    color: $text-light;
+    font-size: 0.95em;
+    font-weight: 500;
+    @include wrap-safely;
+  }
+
+  // 4. Salary (optional, honest — only rendered when the backend
+  // actually supplies a real figure; see utils/jobDisplay.js#formatSalary)
+  .job-salary {
+    color: $primary-hover;
+    font-weight: 600;
+    font-size: 0.94em;
+  }
+
+  // 5. Posted date
+  .job-card-meta {
+    font-size: 0.82em;
+    color: $text-muted;
+  }
+
+  // 6. Tags/badges — 2G-7C: moved from a fixed slot above the company row
+  // to here, after the posted date. This whole block is only rendered by
+  // JobCard.jsx when there's at least one real badge or skill, so a job
+  // with neither doesn't leave a gap here — no min-height reservation is
+  // needed or wanted at this position (unlike the old top-of-card slot,
+  // this one has no earlier content whose position it needs to protect).
+  .job-tags-section {
     display: flex;
-    gap: 15px;
-    .save-btn {
-      background: #fff !important;
-      color: #a276e8 !important;
-      border: 1.4px solid #d7c7ff !important;
-      border-radius: 11px !important;
-      font-weight: 500 !important;
-      text-transform: none !important;
-      box-shadow: none !important;
-      padding: 6px 22px !important;
-      font-size: 1em !important;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .job-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .badge {
+      font-size: 0.76em;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: 3px 10px;
+      letter-spacing: 0.02em;
+      @include wrap-safely;
     }
-    .apply-btn {
-      background: #a276e8 !important;
-      color: #fff !important;
-      border-radius: 11px !important;
-      font-weight: 600 !important;
-      text-transform: none !important;
-      box-shadow: none !important;
-      padding: 6px 25px !important;
-      font-size: 1em !important;
+    // Semantic badge colors, reading from the 2G-7A $badge-* accent
+    // pairs so each badge's color is tied to its MEANING (never assigned
+    // randomly per card) — soft, restrained fills, not saturated/neon.
+    // Work-mode signal — soft green background + deep green text, the
+    // single most decision-relevant badge on the card.
+    .badge-remote {
+      background: $badge-green-bg;
+      color: $badge-green-text;
+    }
+    // Experience — two tones depending on level (badge-experience--entry
+    // vs. --senior below), not one flat gray, so "Fresher" reads as a
+    // distinct, encouraging signal from "Senior."
+    .badge-experience--entry {
+      background: $badge-yellow-bg;
+      color: $badge-yellow-text;
+    }
+    .badge-experience--senior {
+      background: $badge-lavender-bg;
+      color: $badge-lavender-text;
+    }
+    // Tech relevance — soft blue background + dark blue text, a filled
+    // treatment consistent with the other two semantic badges.
+    .badge-tech {
+      background: $badge-blue-bg;
+      color: $badge-blue-text;
+    }
+  }
+
+  // Skills — visually distinct from the badges above (outlined, neutral
+  // chips rather than the badges' colored fills) so the two categories
+  // of metadata never blur together, even sitting in the same section.
+  .job-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .skill-chip {
+      background: $background;
+      color: $text-dark;
+      border: 1px solid $border-color;
+      border-radius: $border-radius-sm;
+      padding: 3px 10px;
+      font-size: 0.76em;
+      font-weight: 500;
+      @include wrap-safely;
+    }
+  }
+
+  // Pushes the action row to the bottom of the card even when optional
+  // metadata (location/salary/posted/tags) is missing, so the action
+  // area's position stays visually consistent card-to-card.
+  .job-card-actions {
+    margin-top: auto;
+    padding-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    // 2G-7C button-hierarchy correction: View Details moves from a light
+    // filled treatment to a clean outlined one — a colored border/text
+    // ($secondary-color, a distinct medium green) rather than a fill, so
+    // it reads as a clearly "quieter, tertiary" action next to Search's
+    // solid medium-green fill and Sign Up's solid dark-green fill
+    // (Navbar.scss). It stays a stronger-looking outline than the
+    // neutral-gray-bordered Save button beside it (colored border vs.
+    // $border-color), so the two outlined controls remain distinguishable
+    // from each other, not just from the two filled CTAs elsewhere.
+    .view-details-btn {
+      background: $surface-color;
+      color: $secondary-color;
+      border: 1.5px solid $secondary-color;
+      border-radius: $border-radius-sm;
+      font-weight: 600;
+      padding: 8px 20px;
+      font-size: 0.94em;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+
       &:hover {
-        background: #8457e7 !important;
+        background: $sage-color;
+        border-color: $primary-color;
+        color: $primary-color;
       }
     }
+
+    // 2G-7C: gained a bookmark icon (filled when saved, outlined
+    // otherwise) beside the existing text label — purely visual; the
+    // button's click handler/disabled/aria-pressed wiring is untouched.
+    .save-btn {
+      background: $surface-color;
+      color: $primary-color;
+      border: 1.4px solid $border-color;
+      border-radius: $border-radius-sm;
+      font-weight: 500;
+      padding: 8px 18px;
+      font-size: 0.94em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: border-color 0.15s, color 0.15s;
+
+      svg {
+        font-size: 1.1em;
+      }
+
+      &:hover:not(:disabled) {
+        border-color: $primary-color;
+      }
+      &.saved {
+        color: $success-color;
+        border-color: $success-color;
+      }
+      &:disabled {
+        cursor: default;
+        opacity: 0.85;
+      }
+    }
+  }
+
+  .job-save-error {
+    margin: 4px 0 0;
+    color: $danger-color;
+    font-size: 0.85em;
   }
 }

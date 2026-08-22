@@ -1,24 +1,53 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+// Phase 2G-1: every hardcoded purple hex value this file previously
+// used is replaced with the shared tokens from _variables.scss instead
+// of new one-off green values — the same "reuse existing shared
+// variables" instruction this phase's own task brief calls for. Login
+// isn't one of this phase's
+// explicitly excluded product-feature pages (job cards/Job Detail/Saved
+// Jobs/Profile/homepage), and leaving it purple while the navbar/global
+// theme go green would be a visibly broken, inconsistent result the
+// moment a user clicks the (now green) "Login" link.
 .login-page {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #f5f5fc;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+  background-color: $background;
 
   .login-form {
-    background: linear-gradient(to bottom right, #ffffff, #f7f3ff);
+    background: linear-gradient(to bottom right, $surface-color, $accent-color);
     padding: 2.5rem;
     border-radius: 12px;
-    width: 400px;
+    // Phase 2F fix: a fixed pixel width with no responsive guard
+    // overflowed horizontally on any viewport narrower than that fixed
+    // value plus the page's own padding — a real bug at every mobile
+    // width this phase's task brief lists (320-430px). `width: 100%` up
+    // to a capped `max-width` keeps the form comfortably narrow on
+    // desktop while never exceeding the viewport on mobile.
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
 
     h2 {
       text-align: center;
-      color: #6a0dad;
+      color: $primary-hover;
       margin-bottom: 1rem;
       font-weight: 700;
+    }
+
+    .field-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: $text-light;
+      margin-bottom: 0.35rem;
     }
 
     input {
@@ -28,6 +57,14 @@
       margin-bottom: 1.2rem;
       font-size: 1rem;
       width: 100%;
+      box-sizing: border-box;
+      min-height: 44px;
+
+      &:focus-visible {
+        outline: 2.5px solid $primary-color;
+        outline-offset: 1px;
+        border-color: $primary-color;
+      }
     }
 
     .password-wrapper {
@@ -40,10 +77,18 @@
 
       .toggle-password {
         position: absolute;
-        top: 50%;
-        right: 1rem;
-        transform: translateY(-50%);
+        top: 0;
+        right: 0;
+        height: 100%;
+        min-height: 0;
+        width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
         cursor: pointer;
+        border-radius: 0 8px 8px 0;
 
         img {
           width: 22px;
@@ -58,8 +103,8 @@
       }
     }
 
-    button {
-      background-color: #7e30e1;
+    button[type="submit"] {
+      background-color: $primary-color;
       color: white;
       border: none;
       padding: 0.75rem;
@@ -69,8 +114,13 @@
       cursor: pointer;
       transition: background-color 0.2s ease;
 
-      &:hover {
-        background-color: #6a23d4;
+      &:hover:not(:disabled) {
+        background-color: $primary-hover;
+      }
+
+      &:disabled {
+        background-color: rgba($primary-color, 0.45);
+        cursor: default;
       }
     }
 
@@ -81,7 +131,7 @@
       .forgot-link {
         display: block;
         margin-bottom: 0.5rem;
-        color: #7e30e1;
+        color: $primary-color;
         font-size: 0.9rem;
         text-decoration: none;
 
@@ -94,7 +144,7 @@
         font-size: 0.9rem;
 
         a {
-          color: #7e30e1;
+          color: $primary-color;
           text-decoration: none;
 
           &:hover {
@@ -105,9 +155,17 @@
     }
 
     .error {
-      color: red;
+      color: $danger-color;
       text-align: center;
       margin-bottom: 1rem;
+      font-weight: 600;
+    }
+  }
+
+  @include mobile {
+    padding: 1.2rem 0.8rem;
+    .login-form {
+      padding: 1.8rem 1.4rem;
     }
   }
 }

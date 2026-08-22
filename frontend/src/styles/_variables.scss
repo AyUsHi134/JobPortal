@@ -1,10 +1,122 @@
 // src/styles/_variables.scss
-$primary-color: #7046d3;
-$accent-color: #ece4fa;
-$background: #faf7ff;
-$text-dark: #2a223e;
-$text-light: #5f43b2;
+//
+// Phase 2G-1 replaced the purple palette with a single flat green.
+// Phase 2G-7A replaces that flat green with a richer, coordinated
+// system — several intentional shades (deep forest, medium natural
+// green, soft sage surfaces, restrained accent tints) instead of one
+// green reused everywhere. Every variable NAME that already existed is
+// still unchanged (only its value was refined), so every file that
+// already reads `$primary-color`/`$accent-color`/etc. (Navbar, Login,
+// AuthRequired, and — by inheritance, not by this phase's own edit —
+// JobCard/JobDetail/SavedJobs/FindJob, which reference these same
+// shared tokens from earlier phases) picks up the refined palette
+// automatically, with zero risk of a missed rename. This phase only
+// edits Navbar.scss/.jsx and the shared global files below — product
+// pages inherit passively, exactly as documented in every prior
+// 2G-1..2G-5 report's own "Not modified this phase" section.
+//
+// Design direction: professional, clean, modern, sophisticated — not
+// neon, not overly saturated, not "every component green." Deep forest
+// green anchors primary/hero/strong actions; a lighter medium green
+// ($secondary-color/$text-light) carries secondary brand emphasis;
+// $sage-color is a soft moss-green surface tint distinct from the page
+// background; $surface-color is a warm neutral white for cards, kept
+// deliberately distinct from the cooler sage $background so cards read
+// as a layer sitting above the page, not the same flat plane. The new
+// $badge-* pairs are restrained, desaturated blue/lavender/yellow/green
+// accents for small badges/tags (inspired by the visual reference's
+// subtle multi-color tag treatment) — not yet consumed by any component
+// this phase (JobCard/JobDetail own their badge colors and are out of
+// this phase's scope), defined here so a future phase can adopt them
+// instead of inventing more one-off hex values.
+//
+// $success-color was already a green before Phase 2G-1 and needed no
+// change; it's deliberately a different lightness from $primary-color
+// so a "Remote"/status badge never visually merges into a primary
+// button sitting next to it. $danger-color is untouched — an error/
+// warning color's MEANING doesn't become green just because the brand
+// did.
+
+// 2G-7A correction (background/surface pass): $background and $sage-color
+// were originally so close to $surface-color (245/248/245 vs.
+// 252/253/251 — a ~7-point channel gap) that the page read as "barely
+// different white," not a visibly layered sage-vs-white system. Both
+// were deepened to a clearly-tinted sage-grey while staying light (not
+// dark, not saturated) — $background now sits roughly 20+ points below
+// $surface-color per channel, and $sage-color is deepened further still
+// so it remains a distinct third tone rather than a near-duplicate of
+// $background.
+//
+// 2G-7A correction (palette-richness pass): the site still read as
+// "mostly one green + white," because every "primary" surface — hero,
+// navbar brand, every button/link everywhere — used the exact same
+// $primary-color value. Two NEW tones were added (names only, no
+// existing token was renamed or removed) to give the system genuine
+// range instead of one shade of green stretched over every use:
+//   - $primary-deep: reserved for the hero gradient's dark end and the
+//     navbar brand — "strong primary elements," the system's darkest,
+//     coolest forest tone.
+//   - $olive-accent: a distinct HUE, not just a darker/lighter step —
+//     shifted toward yellow-green ("olive") rather than the blue-leaning
+//     forest family every other green in this palette belongs to. Used
+//     as the hero gradient's warm end and the navbar Sign Up button's
+//     hover state, so the palette reads as coordinated-but-varied rather
+//     than one hue at different opacities.
+// $primary-color itself keeps its established "medium/natural green —
+// buttons, links, primary actions" role and value; $secondary-color/
+// $sage-color/$background/$surface-color were already doing their job
+// and are unchanged by this pass.
+$primary-deep: #123c2a;    // NEW — deepest, coolest forest green — hero gradient dark end, navbar brand
+$primary-color: #1e6b47;   // medium/natural green — primary buttons/links/primary actions (the workhorse action color)
+$primary-hover: #154f35;   // darker forest — hover/pressed states and important text
+$secondary-color: #3f8f5f; // lighter medium green — secondary brand elements, icons, links
+$olive-accent: #4f5c34;    // NEW — darker olive/forest accent, a distinct warm-green hue — hero gradient warm end, secondary interactive accents
+$sage-color: #dbe6d5;      // moss/sage soft surface tint — nested panels, subtle section fills, secondary areas
+$accent-color: #e3f0e8;    // light green tint — active-state fills, subtle backgrounds
+$background: #e6ece2;      // light sage/grey-green page background — visibly tinted, not near-white
+$surface-color: #fcfdfb;   // warm neutral white — cards/content surfaces, distinct from the cooler page background
+$text-dark: #202b24;       // dark charcoal — primary body/heading text (not pure black)
+$text-light: #3f8f5f;      // medium natural green — secondary emphasis/hover accents (same role/value as $secondary-color)
+$text-muted: #667085;      // muted neutral gray — secondary/meta text and borders (deliberately NOT green)
+$danger-color: #b3392f;    // unchanged — error meaning stays red
+$success-color: #2f9e5c;   // unchanged — was already a distinct, appropriate green
+$border-color: #dee6dd;    // soft neutral green-gray border
+$border-subtle: #eaefe8;   // an even softer divider/border for nested surfaces (card-on-card, dropdown edges)
+$navbar-bg-desktop: #f5f7f5; // NEW — a very subtle cool grey/off-white for the desktop navbar bar only, visibly softer than $surface-color's warm near-white; mobile/tablet-down keeps $surface-color unchanged
 $border-radius: 18px;
-$box-shadow: 0 2px 18px rgba(112, 70, 211, 0.09);
+$border-radius-sm: 11px;
+$box-shadow: 0 2px 20px rgba(20, 45, 32, 0.08); // restrained, green-tinted shadow — soft, not heavy
 $font-main: 'Inter', Arial, sans-serif;
+
+// Restrained, desaturated accent pairs for small badges/tags — inspired
+// by the visual reference's subtle blue/lavender/yellow/pale-green tag
+// treatment. Not neon, not saturated; each pair is a light fill + a
+// readable, darker-toned text color from the same hue family. Defined
+// for future adoption (see note above) — not consumed by any component
+// this phase.
+$badge-blue-bg: #e4ecf8;
+$badge-blue-text: #3b5b86;
+$badge-lavender-bg: #ece7f6;
+$badge-lavender-text: #63529c;
+$badge-yellow-bg: #faf3d8;
+$badge-yellow-text: #8a6d16;
+$badge-green-bg: #e3f0e8;
+$badge-green-text: #1e6b47;
+
+// Phase 2F: a shared breakpoint scale so every component's media queries
+// agree on the same thresholds instead of each file picking its own
+// ad hoc pixel value (the codebase previously mixed 700px/1050px/900px
+// cutoffs across different files for conceptually the same "mobile" vs
+// "tablet" boundary). Matches this phase's task brief exactly: mobile
+// ~320-375px, large mobile ~390-430px, tablet ~768px, laptop
+// ~1024-1440px, large desktop ~1600px+.
+$bp-mobile: 480px;   // small/large mobile combined upper bound
+$bp-tablet: 768px;
+$bp-laptop: 1024px;
+$bp-desktop: 1600px;
+
+// A consistent minimum touch-target size (WCAG 2.5.5-style guidance) for
+// buttons/links that act as controls, applied where padding alone
+// wouldn't reliably reach it on small screens.
+$min-touch-target: 44px;
 

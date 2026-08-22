@@ -5,9 +5,9 @@ export default function Contact() {
     <div className="contact-page">
       <h2>Contact Us</h2>
       <form>
-        <input type="text" placeholder="Your Name" required />
-        <input type="email" placeholder="Your Email" required />
-        <textarea placeholder="Message" rows={4} required />
+        <input type="text" placeholder="Your Name" aria-label="Your Name" required />
+        <input type="email" placeholder="Your Email" aria-label="Your Email" required />
+        <textarea placeholder="Message" aria-label="Message" rows={4} required />
         <button type="submit">Send Message</button>
       </form>
       <div className="contact-info">

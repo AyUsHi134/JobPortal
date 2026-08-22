@@ -1,0 +1,71 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+// "Why Choose Us" feature cards — three small, visually distinct boxes
+// instead of plain stacked text. Colors reuse the exact same restrained
+// $badge-lavender/$badge-blue/$badge-green accent pairs JobCard's own tags
+// already use (see _variables.scss) — no new one-off palette is
+// introduced, and the fills stay light/desaturated per that token's own
+// design intent.
+.home-feature-card {
+  border-radius: $border-radius-sm;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  // A very subtle, one-shot entrance (fade + small upward move) — never a
+  // looping/distracting animation. `both` keeps the pre-animation (opacity:
+  // 0) state applied until the delayed start, then the post-animation end
+  // state after it finishes, so nothing flashes at full opacity first.
+  animation: home-feature-fade-up 0.45s ease both;
+
+  &:nth-child(1) { animation-delay: 0s; }
+  &:nth-child(2) { animation-delay: 0.08s; }
+  &:nth-child(3) { animation-delay: 0.16s; }
+
+  // A very subtle hover lift — restrained, not a bouncy/looping effect.
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(20, 45, 32, 0.08);
+  }
+
+  &--lavender {
+    background: $badge-lavender-bg;
+    .home-feature-card__title { color: $badge-lavender-text; }
+  }
+  &--blue {
+    background: $badge-blue-bg;
+    .home-feature-card__title { color: $badge-blue-text; }
+  }
+  &--green {
+    background: $badge-green-bg;
+    .home-feature-card__title { color: $badge-green-text; }
+  }
+}
+
+@keyframes home-feature-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Graceful degradation: a user who has asked the OS/browser to reduce
+// motion gets the fully-visible end state immediately, no movement at all
+// (including the hover lift) — the feature still renders correctly, it
+// simply never animates.
+@media (prefers-reduced-motion: reduce) {
+  .home-feature-card {
+    animation: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}

@@ -1,67 +1,74 @@
 @use './variables' as *;
 @use './mixins' as *;
 
+html {
+  // Prevents any single overflowing element from ever creating page-level
+  // horizontal scroll — a safety net alongside the per-component overflow
+  // fixes in this phase, not a replacement for them.
+  overflow-x: hidden;
+}
+
 body {
   background: $background;
   color: $text-dark;
   font-family: $font-main;
+  line-height: 1.55;
 }
 
 h1, h2, h3, h4, h5 {
   color: $primary-color;
   font-family: $font-main;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
-.hero-section {
-  background: $accent-color;
-  padding: 48px 0 20px 0;
-  text-align: center;
-}
+// A sane default for any anchor that isn't already given its own color
+// by a more specific component class (every existing styled link —
+// Navbar, Login, JobCard, JobDetail — uses a class selector, which
+// already outranks this bare-element rule, so this only fills in
+// unstyled links rather than overriding anything).
+a {
+  color: $primary-color;
+  text-decoration: none;
 
-.search-bar-wrapper {
-  margin-top: -35px;
-  display: flex;
-  justify-content: center;
-}
-
-.job-card {
-  @include card;
-  min-height: 220px;
-  margin-bottom: 16px;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.features-section {
-  background: #fff;
-  padding: 54px 0;
-  margin-top: 40px;
-  .feature-card {
-    @include card;
-    padding: 24px 12px;
-    text-align: center;
+  &:hover {
+    color: $primary-hover;
   }
 }
 
-/* Responsive */
-@media (max-width: 700px) {
-  .hero-section {
-    padding: 24px 0 8px 0;
-  }
-  .job-card {
-    min-height: 180px;
-    padding: 13px;
-  }
+// A shared utility for secondary/meta text, reading the same muted-gray
+// token every component already uses individually.
+.text-muted {
+  color: $text-muted;
 }
 
-.hero-gradient {
-  background: linear-gradient(135deg, #ece4fa 0%, #7046d3 100%);
+// Phase 2F: a single, consistent keyboard-focus indicator applied to
+// every native interactive element app-wide, since none existed before
+// (confirmed by a repo-wide grep for `outline` finding zero matches —
+// focus visibility depended entirely on inconsistent browser defaults).
+// `:focus-visible` only shows this for keyboard/assistive-tech
+// navigation, not a mouse click. MUI components manage their own focus
+// ring separately and are unaffected by this plain-element rule.
+a, button, input, select, textarea, [tabindex] {
+  @include focus-ring;
 }
-.job-card {
-  border-radius: 18px;
-  box-shadow: 0 2px 18px rgba(112, 70, 211, 0.09);
-  background: #fff;
-  font-family: 'Inter', Arial, sans-serif;
+
+// A consistent minimum touch target for plain (non-MUI) buttons — this
+// app mixes hand-written `<button>` elements (JobCard, JobDetail,
+// FindJob, Login) with MUI `<Button>` (which already manages its own
+// sizing). Padding-based sizing already gets most buttons close to this;
+// `min-height` is the safety floor for the smaller ones (badges/links
+// are informational, not controls, and are intentionally excluded).
+button {
+  min-height: $min-touch-target;
 }
+
+// Phase 2F cleanup: `.hero-section`/`.hero-gradient`/`.search-bar-wrapper`/
+// `.job-card`/`.features-section`/`.feature-card` below were removed —
+// each was styling for exactly one component (HeroSection.jsx,
+// SearchBar.jsx, FeaturesSection.jsx), and all three are confirmed
+// orphaned: not imported by App.jsx or any live page (FRONTEND_AUDIT.md
+// §3, re-confirmed by a repo-wide `import` grep this phase before
+// deleting anything). The real, live homepage/job-card/features styling
+// lives in JobCard.scss and Home.jsx's own MUI `sx` props instead —
+// removing this dead CSS changes nothing any user can see.

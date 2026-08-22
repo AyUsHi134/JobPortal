@@ -1,46 +1,358 @@
 @use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
 
+// Phase 2G-1 fixed the real structural bug (brand/links were two
+// unjoined block-level siblings) and established the one-shared-list
+// desktop/mobile architecture — both are kept exactly as they were this
+// phase; the flex layout, breakpoint mixin, hamburger ARIA wiring, and
+// close-on-navigate behavior are all untouched (per this phase's own
+// "preserve the working hamburger implementation" / "do not literally
+// force exact positions if it requires a better spacing system"
+// instructions). What changed this phase is purely visual: the richer
+// _variables.scss palette, a softer/more layered surface treatment, and
+// a redesigned active-route indicator — the previous inset box-shadow
+// underline read as a heavy outlined box once combined with the link's
+// own padding/border-radius; it's replaced with a restrained pill
+// (subtle green background + green text), matching this phase's
+// "elegant, restrained active state" direction.
 
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.2rem 2rem;
-  background: #fff;
-  border-bottom: 1.5px solid $accent-color;
+  // Desktop-only subtle grey/off-white — tablet-down below reverts to $surface-color.
+  background: $navbar-bg-desktop;
+  border-bottom: 1px solid $border-subtle;
+  box-shadow: 0 2px 14px rgba(20, 45, 32, 0.06);
+  position: relative;
 
-  .navbar__brand a {
-    font-weight: 900;
-    font-size: 2rem;
-    color: $primary-color;
-    text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0.85rem 2rem;
+  gap: 0.75rem 1.5rem;
+
+  .navbar__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex: 0 0 auto;
   }
 
+  // 2G-7A palette correction: the brand now reads $primary-deep (the
+  // system's darkest, coolest forest tone — "deep greens: hero/navbar/
+  // strong primary elements") rather than the same $primary-color every
+  // button/link on the page already uses, so the logo carries its own
+  // distinct weight instead of blending into the rest of the nav.
+  // Slightly larger than before (was 1.6rem) so the desktop bar doesn't
+  // read as unnecessarily empty — a small bump, not a redesign; position,
+  // links, colors, and mobile size (set separately below) are untouched.
+  .navbar__brand a {
+    font-weight: 800;
+    font-size: 1.75rem;
+    color: $primary-deep;
+    text-decoration: none;
+    letter-spacing: -0.01em;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  // Hidden on desktop/tablet — only shown below $bp-tablet (see the
+  // media query at the bottom of this file).
+  .navbar__toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    min-height: 0; // overrides the global `button { min-height }` baseline — this control's own 44px box already satisfies it via width/height, not padding.
+
+    &:hover { background: $accent-color; }
+
+    .navbar__toggle-bar {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: $primary-color;
+      border-radius: 2px;
+    }
+  }
+
+  // Primary navigation + auth actions — a single list (no duplicated
+  // desktop/mobile markup). On desktop it sits on the same line as the
+  // brand, flexing to fill the remaining width.
+  //
+  // 2G-7A correction: the auto-margin moved from the first AUTH item to
+  // the first NAV item (`li:first-child`, always "Home," in both the
+  // logged-in and logged-out branches) — the previous rule pushed only
+  // Login/Sign Up to the right edge while Home/Find Jobs/About/Contact
+  // stayed grouped immediately beside the brand; the corrected layout
+  // pushes the ENTIRE nav+auth cluster together to the right edge,
+  // leaving only the brand on the far left with one large gap before
+  // "Home," matching the corrected reference layout exactly.
+  // `li.navbar__auth-start` no longer carries a desktop margin — it's
+  // still used further down, in the mobile-breakpoint rules below, purely
+  // as the mobile column's "auth actions start here" divider marker,
+  // unrelated to this desktop positioning rule.
   .navbar__links {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 0.35rem;
     list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1 1 auto;
 
-    li a {
-      color: $primary-color;
-      font-weight: 700;
+    li:first-child {
+      margin-left: auto;
+    }
+
+    li a, li button.logout-btn, li button.navbar__profile-trigger {
+      display: inline-block;
+      color: $text-dark;
+      font-weight: 600;
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color 0.15s, background-color 0.15s;
+      padding: 0.5rem 0.85rem;
+      border-radius: $border-radius-sm;
 
       &:hover {
-        color: $text-light;
+        color: $primary-color;
+        background: $sage-color;
+      }
+
+      // React Router's NavLink applies this class automatically when the
+      // link matches the current route — no manual path-comparison logic
+      // needed in the component. A restrained pill (soft green fill +
+      // green text) instead of a heavy outlined box or underline —
+      // works identically for every route since it's driven entirely by
+      // NavLink's own isActive callback, not a per-route rule.
+      &.active {
+        color: $primary-color;
+        font-weight: 700;
+        background: $accent-color;
+
+        &:hover {
+          background: $accent-color;
+        }
       }
     }
 
-    .signup-btn {
-      padding: 0.5rem 1.2rem;
-      background: $primary-color;
-      color: #fff;
-      border-radius: $border-radius;
-      margin-left: 0.6rem;
+    li button.logout-btn, li button.navbar__profile-trigger {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 1em;
+      cursor: pointer;
+      min-height: 0;
+    }
+
+    // A subtle icon beside the "Profile" label — keeps the trigger reading
+    // as a compact, restrained control rather than a plain text link, per
+    // the desktop redesign's "subtle profile icon, not visually heavy" aim.
+    li button.navbar__profile-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+
+      svg {
+        font-size: 1.15em;
+        opacity: 0.85;
+      }
+    }
+
+    // Logout stays permanently red (the existing $danger-color token,
+    // already used for error states elsewhere) — not only on hover —
+    // so it reads as a distinct, destructive action, not just another
+    // nav link. Comes after the shared rule above so it wins.
+    li button.logout-btn {
+      color: $danger-color;
+
       &:hover {
-        background: $text-light;
+        color: $danger-color;
+      }
+    }
+
+    // The Profile dropdown panel — positioned relative to its own <li>
+    // (which keeps the existing navbar__auth-start desktop/mobile
+    // divider behavior unchanged) so it can float below the trigger on
+    // desktop without affecting the rest of the bar's layout.
+    .navbar__profile-menu {
+      position: relative;
+    }
+
+    .navbar__profile-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 20;
+      margin: 0.4rem 0 0;
+      padding: 0.4rem;
+      min-width: 180px;
+      list-style: none;
+      background: $surface-color;
+      border: 1px solid $border-subtle;
+      border-radius: $border-radius-sm;
+      box-shadow: $box-shadow;
+
+      &.navbar__profile-dropdown--open {
+        display: block;
+      }
+
+      li {
+        width: auto;
+      }
+
+      li a, li button.logout-btn {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: left;
+      }
+    }
+
+    // 2G-7A button-hierarchy correction: Sign Up is the site's strongest
+    // CTA, so it now defaults to $primary-hover ("dark natural green" —
+    // deeper than the plain $primary-color every ordinary button/link
+    // uses, including the homepage's own Search button) rather than
+    // matching Search's exact shade. Hover moves to $olive-accent (a
+    // genuinely different hue, not just a darker step) and route-active
+    // moves to $primary-deep, the system's darkest tone — three distinct
+    // tones across one button's states, and a default that's visibly
+    // stronger/deeper than Search's medium green at rest, not only on
+    // hover.
+    .signup-btn {
+      padding: 0.55rem 1.3rem !important;
+      background: $primary-hover;
+      color: #fff !important;
+      border-radius: $border-radius-sm;
+      &:hover {
+        background: $olive-accent !important;
+        color: #fff !important;
+      }
+      &.active {
+        background: $primary-deep !important;
+        box-shadow: 0 0 0 2px $sage-color;
+      }
+    }
+  }
+}
+
+// Below tablet width: collapse the same two children (`.navbar__bar`,
+// `.navbar__links`) into a stacked layout — the bar row (brand +
+// hamburger) on top, and the links list as a full-width dropdown panel
+// beneath it, toggled by the hamburger button, exactly as Phase 2F
+// already built.
+@include tablet-down {
+  .navbar {
+    background: $surface-color;
+    padding: 1rem 1.2rem;
+    align-items: flex-start;
+
+    .navbar__bar {
+      flex: 1 1 100%;
+      justify-content: space-between;
+    }
+
+    .navbar__brand a {
+      font-size: 1.4rem;
+    }
+
+    .navbar__toggle {
+      display: flex;
+    }
+
+    .navbar__links {
+      display: none;
+      flex: 1 1 100%;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.2rem;
+
+      &.navbar__links--open {
+        display: flex;
+      }
+
+      li {
+        width: 100%;
+      }
+      li:first-child {
+        // The desktop right-push has no meaning in a full-width vertical
+        // column (every `li` is already 100% wide) — reset explicitly
+        // rather than relying on that being incidentally true.
+        margin-left: 0;
+      }
+      li.navbar__auth-start {
+        // The desktop right-push has no meaning in a full-width column
+        // layout — a plain top divider marks the same "auth actions
+        // start here" boundary instead.
+        margin-left: 0;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid $border-subtle;
+      }
+      li a, li button.logout-btn, li button.navbar__profile-trigger {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.8rem 0.6rem;
+        border-radius: $border-radius-sm;
+      }
+      // Mobile-only: neutralize the base rule's :hover background fill
+      // (still $sage-color there) so mobile hover is a text-color change
+      // only, not a full-width highlight — the base rule's own
+      // color: $primary-color hover text change is untouched/still applies.
+      li a:hover,
+      li button.logout-btn:hover,
+      li button.navbar__profile-trigger:hover {
+        background: none;
+      }
+      // Subtle mobile active indicator — just the 3px green left accent
+      // (matching the item's own already-active text color/weight from
+      // the shared &.active rule above); no full-width fill or corner
+      // reshaping, so it reads as a thin marker, not a large rounded pill.
+      li a.active {
+        box-shadow: inset 3px 0 0 $primary-color;
+        background: none;
+      }
+      .signup-btn {
+        margin-left: 0;
+        text-align: center;
+      }
+      // Login and Sign Up otherwise only get the list's own small
+      // 0.2rem flex gap (same as every other item pair) — this adds
+      // extra breathing room between them specifically, without
+      // touching that shared gap or any other pair's spacing. Scoped to
+      // the li immediately after Login's own li.navbar__auth-start; in
+      // the logged-in branch nothing follows that li, so this never
+      // matches there.
+      li.navbar__auth-start + li {
+        margin-top: 0.5rem;
+      }
+
+      // Below tablet width the dropdown flows inline as a nested,
+      // slightly-indented list within the same vertical column — a
+      // floating absolute panel would sit awkwardly over a full-width
+      // mobile menu, so it's neutralized back into normal flow here.
+      .navbar__profile-dropdown {
+        position: static;
+        box-shadow: none;
+        border: none;
+        margin: 0.2rem 0 0;
+        padding: 0 0 0.3rem 0.75rem;
+        min-width: 0;
+
+        li a, li button.logout-btn {
+          padding: 0.7rem 0.6rem;
+        }
       }
     }
   }

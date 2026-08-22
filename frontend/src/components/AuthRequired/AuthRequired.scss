@@ -1,0 +1,40 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.auth-required {
+  max-width: 480px;
+  width: calc(100% - 2rem);
+  margin: 4rem auto;
+  text-align: center;
+  padding: 2.4rem 2rem;
+  background: $background;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  box-sizing: border-box;
+
+  @include mobile {
+    margin: 2.4rem auto;
+    padding: 1.8rem 1.4rem;
+  }
+
+  h2 {
+    color: $text-dark;
+    margin-bottom: 0.6rem;
+  }
+
+  p {
+    color: $text-light;
+    margin-bottom: 1.4rem;
+  }
+
+  &__login-link {
+    display: inline-block;
+    color: #fff;
+    background: $primary-color;
+    border-radius: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0.65em 1.8em;
+    &:hover { background: $text-light; }
+  }
+}

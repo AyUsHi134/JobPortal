@@ -1,33 +1,339 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+// Phase 2C built the real search/filter/sort/pagination logic on this
+// page (untouched this phase — see FindJob.jsx). Phase 2G-7B is the
+// first phase to bring its own visual layer onto the shared green design
+// system: every color below now reads from a token in _variables.scss
+// (previously this file was the last major page still on the original
+// purple palette). Structure is unchanged — the same two-column
+// filters-aside + results layout, which already collapses to a single
+// stacked column (filters first, full width) below tablet width, giving
+// exactly the "search/filters -> results count/status -> job cards ->
+// pagination" vertical hierarchy the task brief describes once the
+// viewport narrows.
+
+// Navbar + Search merged into one continuous white top shell (no sage gap
+// between them, matching Home.jsx's same treatment) — this full-bleed band
+// sits directly under the navbar (whose own border-bottom already supplies
+// the "still visually distinguishable" divider — untouched in Navbar.scss),
+// so the toolbar card below reads as the shell's own second section rather
+// than a separate floating card over a visible sage strip.
+.findjob-topbar {
+  background: $surface-color;
+  padding: 1.2rem 4vw 1rem;
+}
+
+// The toolbar itself keeps its own border/shadow for internal definition
+// (SS2 composition) — no longer paired with the green intro card in one row
+// (see .findjob-sidebar below for that pairing's new home, stacked with
+// Filters in the left column instead).
+.findjob-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.6rem;
+  background: $surface-color;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  padding: 0.6rem;
+}
+
+.toolbar-field {
+  flex: 1 1 150px;
+  display: flex;
+  align-items: center;
+
+  &--search {
+    flex: 2 1 240px;
+  }
+
+  input, select {
+    width: 100%;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-sm;
+    background: $surface-color;
+    color: $text-dark;
+    font-size: 0.94em;
+    font-family: $font-main;
+    padding: 0.65em 0.85em;
+    min-height: 44px;
+
+    &:focus-visible {
+      border-color: $primary-color;
+    }
+  }
+}
+
+.toolbar-search-btn {
+  flex: 0 0 auto;
+  border: none;
+  border-radius: $border-radius-sm;
+  background: $primary-color;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.65em 1.6em;
+  cursor: pointer;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: $primary-hover;
+  }
+}
+
+@include tablet-down {
+  .findjob-topbar {
+    padding: 1.1rem 4vw 0.9rem;
+  }
+}
+
+@include mobile {
+  .findjob-topbar {
+    padding: 1rem 5vw 0.8rem;
+  }
+
+  .findjob-toolbar {
+    padding: 0.5rem;
+  }
+
+  .toolbar-field {
+    flex: 1 1 100%;
+  }
+
+  .toolbar-search-btn {
+    flex: 1 1 100%;
+  }
+}
+
 .findjob-container {
   display: flex;
-  padding: 2rem 4vw;
+  padding: 1.2rem 4vw 2rem;
   gap: 2.5rem;
-  background: #faf7ff;
+  background: $background;
   min-height: 70vh;
-  aside.filters {
+  flex-wrap: wrap;
+
+  // Left column (SS2 composition): the compact green "Find Jobs" intro
+  // card stacked directly above the existing Filters panel — both now
+  // live inside this one <aside>, replacing the old aside.filters element
+  // (Filters is now a plain nested div; its own styling below is
+  // unchanged from before, only the selector's own element/nesting moved).
+  aside.findjob-sidebar {
     min-width: 220px;
-    background: #fff;
-    padding: 2rem 1rem;
-    border-radius: 18px;
-    box-shadow: 0 2px 12px rgba(112,70,211,.06);
+    flex: 0 1 260px;
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
-    h3 { color: #7046d3; font-weight: 800; }
-    input, select {
-      border-radius: 8px;
-      border: 1px solid #ece4fa;
-      padding: .7em 1em;
-      font-size: 1em;
+    align-self: flex-start;
+
+    &__intro {
+      border-radius: $border-radius;
+      padding: 1.4rem 1.3rem;
+      background: linear-gradient(115deg, $primary-deep 0%, $primary-color 40%, $olive-accent 100%);
+
+      h1 {
+        color: #fff;
+        font-size: 1.3rem;
+        font-weight: 800;
+        margin: 0 0 0.4rem;
+      }
+
+      p {
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 0.88rem;
+        margin: 0;
+        line-height: 1.5;
+      }
     }
   }
+
+  .filters {
+    background: $surface-color;
+    padding: 2rem 1rem;
+    border-radius: $border-radius;
+    border: 1px solid $border-color;
+    box-shadow: $box-shadow;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+
+    h3 { color: $primary-color; font-weight: 800; margin: 0; }
+
+    input, select {
+      border-radius: $border-radius-sm;
+      border: 1px solid $border-color;
+      background: $surface-color;
+      color: $text-dark;
+      padding: .7em 1em;
+      font-size: 1em;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 44px;
+      transition: border-color .15s;
+
+      &:focus-visible {
+        border-color: $primary-color;
+      }
+    }
+    .filter-label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.85em;
+      font-weight: 600;
+      color: $text-dark;
+    }
+    .filter-hint {
+      font-size: 0.8em;
+      color: $text-muted;
+      margin: -0.6rem 0 0;
+    }
+    .reset-btn {
+      border-radius: $border-radius-sm;
+      border: 1.4px solid $border-color;
+      background: $surface-color;
+      color: $primary-color;
+      font-weight: 600;
+      padding: 0.7em 1em;
+      cursor: pointer;
+      &:hover:not(:disabled) { background: $sage-color; }
+      &:disabled { opacity: 0.5; cursor: default; }
+    }
+  }
+
   section.job-listings {
-    flex: 1;
-    h2 { color: #51308d; font-weight: 700; margin-bottom: 1.5rem; }
+    flex: 1 1 400px;
+    min-width: 0;
+
+    h2 { color: $primary-color; font-weight: 700; margin-bottom: 1rem; }
+
+    // Results count/status — always shown once results exist, sitting
+    // between the filters/sort controls and the job-card grid, per this
+    // phase's "Search area -> Filters/sorting -> Results count/status ->
+    // Job cards -> Pagination" hierarchy.
+    .results-count {
+      color: $text-muted;
+      font-size: 0.92em;
+      font-weight: 600;
+      margin: 0 0 1.2rem;
+    }
+
+    .status-message {
+      @include status-block;
+      text-align: left;
+      padding: 1rem 0;
+      font-size: 1.05em;
+    }
+    .status-error {
+      color: $danger-color;
+    }
+
+    // A richer, honest "no results for your search" state (distinct from
+    // "nothing exists at all," which stays the plain single-line message
+    // above) — names the actual query, and offers two real, working
+    // actions rather than leaving the user stuck.
+    .no-results {
+      background: $surface-color;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      padding: 1.6rem 1.4rem;
+
+      &__title {
+        margin: 0 0 0.4rem;
+        font-size: 1.15em;
+        font-weight: 700;
+        color: $text-dark;
+      }
+      &__body {
+        margin: 0 0 1.1rem;
+        color: $text-muted;
+        line-height: 1.6;
+      }
+      &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+      }
+      &__btn {
+        border-radius: $border-radius-sm;
+        border: 1.4px solid $border-color;
+        background: $surface-color;
+        color: $primary-color;
+        font-weight: 600;
+        padding: 0.6em 1.3em;
+        cursor: pointer;
+        transition: border-color .15s, background-color .15s;
+
+        &:hover { border-color: $primary-color; background: $sage-color; }
+
+        &--primary {
+          background: $primary-color;
+          border-color: $primary-color;
+          color: #fff;
+
+          &:hover { background: $primary-hover; border-color: $primary-hover; }
+        }
+      }
+    }
+
     .job-listings__grid {
       display: grid;
       gap: 2rem;
       grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
     }
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+      margin-top: 2.5rem;
+      button {
+        border-radius: $border-radius-sm;
+        border: 1.4px solid $border-color;
+        background: $surface-color;
+        color: $primary-color;
+        font-weight: 600;
+        padding: 0.6em 1.4em;
+        cursor: pointer;
+        &:hover:not(:disabled) { background: $sage-color; }
+        &:disabled { opacity: 0.4; cursor: default; }
+      }
+      .pagination-status {
+        color: $text-muted;
+        font-size: 0.95em;
+        text-align: center;
+      }
+    }
+  }
+}
+
+// Phase 2F: at true mobile widths, `minmax(310px, 1fr)` grid columns can
+// exceed the available width once the container's own side padding is
+// subtracted (e.g. at 320px viewport width, 2 × 4vw padding leaves well
+// under 310px) — the grid would then force its track wider than the
+// viewport, creating horizontal scroll. Reducing the container's side
+// padding and the grid's minimum column width below $bp-mobile keeps a
+// single job card column fully inside the viewport at every width this
+// phase's task brief lists (320px+).
+@include mobile {
+  .findjob-container {
+    padding: 1.2rem 4vw;
+    gap: 1.5rem;
+
+    aside.findjob-sidebar {
+      width: 100%;
+      flex-basis: 100%;
+    }
+    section.job-listings .job-listings__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+@include tablet-down {
+  .findjob-container {
+    padding: 1.5rem 4vw;
   }
 }

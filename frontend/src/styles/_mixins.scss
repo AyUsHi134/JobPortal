@@ -4,6 +4,91 @@
 @mixin card {
   border-radius: $border-radius;
   box-shadow: $box-shadow;
-  background: #fff;
-  transition: box-shadow .18s;
+  background: $surface-color;
+  border: 1px solid $border-color;
+  transition: box-shadow .18s, border-color .18s;
+}
+
+// A small, restrained badge/tag treatment reading from the $badge-*
+// accent pairs in _variables.scss — for a future phase to adopt instead
+// of inventing another one-off hex value (JobCard/JobDetail's own badge
+// colors are out of this phase's scope, so this mixin isn't consumed
+// anywhere yet).
+@mixin badge($bg, $text) {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: $border-radius-sm;
+  background: $bg;
+  color: $text;
+  font-size: 0.82em;
+  font-weight: 600;
+}
+
+// Phase 2F: shared responsive breakpoint mixins — every existing
+// component that had its own media query (JobCard.scss, FindJob.scss,
+// main.scss, ...) used a different max-width cutoff for conceptually the
+// same breakpoint. New/updated rules use these instead so the app's
+// responsive behavior agrees at one shared set of thresholds
+// ($bp-mobile/$bp-tablet/$bp-laptop/$bp-desktop in _variables.scss).
+@mixin mobile {
+  @media (max-width: $bp-mobile) { @content; }
+}
+@mixin tablet-down {
+  @media (max-width: $bp-tablet) { @content; }
+}
+@mixin laptop-down {
+  @media (max-width: $bp-laptop) { @content; }
+}
+@mixin desktop-up {
+  @media (min-width: $bp-desktop) { @content; }
+}
+
+// Guards against a single unbroken long string (a long URL-shaped
+// company name, a skill with no spaces, etc.) forcing its container
+// wider than the layout — wraps normally otherwise. Deliberately NOT a
+// truncating ellipsis: this project's data-honesty rule (never hide/alter
+// real backend data) applies as much to layout as to fabricated values,
+// so long real text wraps onto more lines rather than being cut off.
+@mixin wrap-safely {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+// A single-line ellipsis truncation, for the few places (see call sites)
+// where an unbounded label sits on one fixed-height row and wrapping
+// would break that row's layout rather than just growing it — used
+// sparingly, never for a field's only copy of information the user needs.
+@mixin truncate-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// A consistent, visible keyboard-focus indicator. The app previously
+// defined no focus styling anywhere (confirmed by a repo-wide grep for
+// `outline`), which meant keyboard/focus-visible behavior depended
+// entirely on each browser's own default outline — inconsistent with the
+// rest of the design system and, on some controls with a custom
+// background, hard to see. `:focus-visible` (not bare `:focus`) so a
+// mouse click doesn't show the ring, only real keyboard/AT navigation.
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2.5px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+// Shared visual treatment for the app's "loading / not-found / error"
+// status blocks (FindJob's .status-message, JobDetail's
+// .job-detail-status, SavedJobs' .saved-jobs-status, etc.) — these were
+// three separately hand-written, slightly different implementations of
+// the same idea. Included into each existing selector rather than
+// renaming any of them, so no class name or JSX text any existing test
+// checks for changes.
+@mixin status-block {
+  text-align: center;
+  padding: 2rem 1.2rem;
+  color: $text-light;
+  font-size: 1.05em;
+  line-height: 1.6;
 }

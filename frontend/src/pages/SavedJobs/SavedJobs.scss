@@ -1,0 +1,65 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.saved-jobs-page {
+  padding: 2rem 4vw 3rem;
+  background: $background;
+  min-height: 70vh;
+
+  h1 {
+    color: $text-dark;
+    font-weight: 800;
+    margin-bottom: 1.2rem;
+  }
+
+  .saved-jobs-note {
+    color: $text-muted;
+    font-size: 0.92em;
+    margin-bottom: 1rem;
+  }
+
+  .saved-jobs-hint {
+    color: $text-muted;
+    font-size: 0.88em;
+    font-style: italic;
+    margin: -0.4rem 0 1.2rem;
+  }
+
+  .saved-jobs-empty {
+    color: $text-light;
+    font-size: 1.05em;
+    a {
+      color: $primary-color;
+      font-weight: 600;
+      text-decoration: none;
+      &:hover { text-decoration: underline; }
+    }
+  }
+
+  .saved-jobs-grid {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    max-width: 1150px;
+  }
+
+  // Same fix as FindJob.scss: a 310px minimum column can exceed the
+  // viewport width once side padding is subtracted at true mobile
+  // widths, forcing horizontal scroll.
+  @include mobile {
+    padding: 1.2rem 4vw 2rem;
+    .saved-jobs-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.saved-jobs-status {
+  @include status-block;
+  max-width: 600px;
+  margin: 3rem auto;
+
+  &--error {
+    color: $danger-color;
+  }
+}

@@ -1,8 +1,17 @@
+@use '../../styles/variables' as *;
+
+// 2G-7A palette correction: About was one of the few remaining pages
+// still on its own hardcoded purple hex, never migrated onto the shared
+// green tokens by any earlier phase (out of scope for every prior 2G
+// phase's own explicit "do not modify About/Contact content" boundary —
+// this pass changes only color VALUES, reading from the same shared
+// tokens every other page now uses, not the page's content/layout).
+
 .about-page {
   padding: 3rem 6vw 5rem 6vw;
-  background: #faf7ff;
+  background: $background;
   h2 {
-    color: #7046d3;
+    color: $primary-color;
     font-size: 2.3rem;
     font-weight: 900;
     margin-bottom: 1.2rem;
@@ -10,13 +19,24 @@
   p {
     font-size: 1.15rem;
     margin-bottom: 2rem;
-    color: #51308d;
+    color: $text-dark;
+    max-width: 60ch;
   }
   .about__highlight {
     display: flex;
-    gap: 2.5rem;
+    // Phase 2F fix: no `flex-wrap` meant these three pill spans forced
+    // the row wider than the viewport at mobile widths instead of
+    // wrapping onto a second line — a real horizontal-overflow bug.
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
     font-weight: 700;
-    color: #2a223e;
-    span { background: #ece4fa; padding: .7em 1.4em; border-radius: 16px; }
+    color: $text-dark;
+    span { background: $sage-color; padding: .7em 1.4em; border-radius: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    padding: 2rem 6vw 3rem;
+    h2 { font-size: 1.7rem; }
+    p { font-size: 1.02rem; }
   }
 }
