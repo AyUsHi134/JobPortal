@@ -83,7 +83,8 @@ console.log("\n[5] Every Phase 2C filter/sort control is still present, unchange
   check("remote select is present", /value={filters\.is_remote}/.test(FINDJOB_JSX));
   check("source select is present with both real values (adzuna/remoteok)", /value={filters\.source}/.test(FINDJOB_JSX) && /value="adzuna"/.test(FINDJOB_JSX) && /value="remoteok"/.test(FINDJOB_JSX));
   check("sort select is present with all 3 real sort options", /value={filters\.sort}/.test(FINDJOB_JSX) && /value="newest"/.test(FINDJOB_JSX) && /value="oldest"/.test(FINDJOB_JSX) && /value="salary_high"/.test(FINDJOB_JSX));
-  check("exactly the 5 existing discrete controls call updateFilter (experience_level, is_tech_relevant, is_remote, source, sort) — no new filter field was added", (FINDJOB_JSX.match(/updateFilter\("/g) || []).length === 5);
+  check("language select is present with all 3 real language options (en/other/all)", /value={filters\.language}/.test(FINDJOB_JSX) && /value="en"/.test(FINDJOB_JSX) && /value="other"/.test(FINDJOB_JSX) && /value="all"/.test(FINDJOB_JSX));
+  check("exactly the 6 discrete controls call updateFilter (experience_level, is_tech_relevant, is_remote, source, language, sort) — the language filter added later is the only addition beyond Phase 2C's original 5", (FINDJOB_JSX.match(/updateFilter\("/g) || []).length === 6);
 }
 
 // ---------------------------------------------------------------------------

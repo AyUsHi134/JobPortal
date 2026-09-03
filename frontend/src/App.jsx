@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx"; 
 
 import Navbar from "./components/Navbar/Navbar";
+import Footer from "./components/Footer";
 import FindJob from "./pages/FindJob/FindJob";
 import About from "./pages/About/About";
 import Contact from "./pages/Contact/Contact";
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/job/:id" element={<JobDescription />} />
         </Routes>
+        <Footer />
     </AuthProvider>
   );
 }

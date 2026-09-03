@@ -1,13 +1,11 @@
 // Deterministic verification for frontend/src/services/userApi.js
-// (Phase 2B): profile, save-job, and is-saved API functions — compared
-// directly against BACKEND_API_CONTRACT.md §6-§7. Critically verifies
-// that these calls never send a client-supplied user id (the backend
-// derives the acting user purely from the Authorization header the
-// centralized apiClient attaches — PHASE_1I4_REPORT.md's own
-// impersonation fix) and that no `unsaveJob` function exists, since the
-// backend contract has no corresponding endpoint (a documented gap, not
-// an oversight — see PHASE_2B_REPORT.md). No real network call is made.
-// Run via `node src/tests/testUserApi.js`.
+// (Phase 2B): profile, save-job, is-saved, and unsave-job API functions —
+// compared directly against BACKEND_API_CONTRACT.md §6-§7. Critically
+// verifies that these calls never send a client-supplied user id (the
+// backend derives the acting user purely from the Authorization header
+// the centralized apiClient attaches — PHASE_1I4_REPORT.md's own
+// impersonation fix). No real network call is made. Run via
+// `node src/tests/testUserApi.js`.
 
 globalThis.localStorage = (() => {
   const store = new Map();
@@ -20,7 +18,7 @@ globalThis.localStorage = (() => {
 
 const { apiClient, setStoredAuth, clearStoredAuth } = await import("../services/api.js");
 const userApi = await import("../services/userApi.js");
-const { getProfile, updateProfile, saveJob, isJobSaved } = userApi;
+const { getProfile, updateProfile, saveJob, isJobSaved, unsaveJob } = userApi;
 
 let passCount = 0;
 let failCount = 0;
@@ -163,15 +161,23 @@ console.log("\n[5] Save-job/profile requests made while logged out carry no Auth
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n[6] No unsaveJob function exists — the backend contract has no corresponding endpoint");
+console.log("\n[6] unsaveJob() sends ONLY {jobId} — never a client-supplied user id");
 {
-  // This is intentional, not an oversight: BACKEND_API_CONTRACT.md §6
-  // only documents POST /api/user/savejob and POST /api/user/issaved.
-  // Asserting its absence here makes the gap an explicit, checked fact
-  // rather than a silent omission that could be "fixed" by accident
-  // later by pointing it at a URL that doesn't exist.
-  check("userApi.js does not export an unsaveJob function", typeof userApi.unsaveJob === "undefined");
-  check("userApi.js does not export a removeJob/removeSavedJob function either", typeof userApi.removeSavedJob === "undefined" && typeof userApi.removeJob === "undefined");
+  setStoredAuth("real-token", { name: "Asha", email: "asha@example.com" });
+  let captured = null;
+  apiClient.defaults.adapter = mockAdapter(
+    { status: 200, data: { success: true, savedJobs: [] } },
+    (config) => { captured = config; }
+  );
+
+  const savedJobs = await unsaveJob(JOB_ID);
+
+  check("POST method used", captured.method === "post");
+  check("the correct path", captured.url === "/api/user/unsavejob");
+  check("the request body is exactly {jobId} — no userId field anywhere", captured.data === JSON.stringify({ jobId: JOB_ID }));
+  check("the Authorization header carries the identity instead", captured.headers.Authorization === "Bearer real-token");
+  check("the updated (now-empty) savedJobs list is returned", Array.isArray(savedJobs) && savedJobs.length === 0);
+  clearStoredAuth();
 }
 
 console.log("\n============================");

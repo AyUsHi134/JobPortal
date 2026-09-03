@@ -50,6 +50,14 @@ export default function SavedJobs() {
     };
   }, [isAuthenticated]);
 
+  // Passed to each JobCard as onUnsaved: once the backend confirms a job
+  // was actually removed from the caller's savedJobs, drop it from this
+  // page's own list immediately rather than leaving a stale card behind
+  // until the next reload.
+  const handleUnsaved = (jobId) => {
+    setJobs((prev) => prev.filter((job) => job._id !== jobId));
+  };
+
   if (!isAuthenticated) {
     return <AuthRequired message="Log in to view your saved jobs." />;
   }
@@ -77,25 +85,13 @@ export default function SavedJobs() {
           You haven't saved any jobs yet. <Link to="/jobs">Browse jobs</Link>
         </p>
       ) : (
-        <>
-          {/* Phase 2F: an honest, visible note rather than a silently
-              missing feature — BACKEND_API_CONTRACT.md §6 has no
-              remove-saved-job endpoint (PHASE_2E_REPORT.md §2/§13), so no
-              "Unsave" control exists anywhere in this UI. Saying so here
-              is more honest than leaving a user to wonder why the Save
-              button on every card below is permanently disabled once
-              already saved. */}
-          <p className="saved-jobs-hint">
-            Jobs currently can’t be removed from this list from the app — that requires a backend feature not yet available.
-          </p>
-          <div className="saved-jobs-grid">
-            {jobs.map((job) => (
-              <div className="saved-jobs-grid__item" key={job._id}>
-                <JobCard job={job} />
-              </div>
-            ))}
-          </div>
-        </>
+        <div className="saved-jobs-grid">
+          {jobs.map((job) => (
+            <div className="saved-jobs-grid__item" key={job._id}>
+              <JobCard job={job} onUnsaved={handleUnsaved} />
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

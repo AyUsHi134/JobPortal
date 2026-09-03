@@ -200,7 +200,7 @@ console.log("\n[10] Multiple filters combine correctly into a single request");
   await listJobs(filters);
 
   check("all 6 active filters + sort were sent together in one request", captured.params.q === "developer" && captured.params.experience_level === "junior" && captured.params.is_tech_relevant === "true" && captured.params.is_remote === "true" && captured.params.location === "India" && captured.params.source === "adzuna" && captured.params.sort === "newest");
-  check("no extraneous/unrecognized keys were sent", Object.keys(captured.params).sort().join(",") === "experience_level,is_remote,is_tech_relevant,location,page,q,sort,source");
+  check("no extraneous/unrecognized keys were sent", Object.keys(captured.params).sort().join(",") === "experience_level,is_remote,is_tech_relevant,language,location,page,q,sort,source");
 }
 
 // ---------------------------------------------------------------------------

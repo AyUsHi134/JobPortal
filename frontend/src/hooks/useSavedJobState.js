@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./useAuth.js";
-import { saveJob, isJobSaved } from "../services/userApi.js";
-import { resolveSavedStateAfterSave } from "../utils/savedJobUi.js";
+import { saveJob, isJobSaved, unsaveJob } from "../services/userApi.js";
+import { resolveSavedStateAfterSave, resolveSavedStateAfterUnsave } from "../utils/savedJobUi.js";
 
 // Phase 2E: the saved-job state a single job card/detail view needs,
 // factored out of JobCard.jsx (Phase 2C) into a shared hook so
@@ -60,5 +60,26 @@ export function useSavedJobState(jobId) {
     }
   };
 
-  return { isAuthenticated, isSaved, isSaving, error, save };
+  // Returns whether the job actually ended up unsaved, so a caller (e.g.
+  // the Saved Jobs page) can act on a real, confirmed outcome instead of
+  // reacting to isSaved via a stale closure — React state updates aren't
+  // visible to the caller until the next render.
+  const unsave = async () => {
+    if (!isAuthenticated || !isSaved || isSaving) return false;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const savedJobIds = await unsaveJob(jobId);
+      const stillSaved = resolveSavedStateAfterUnsave(jobId, savedJobIds);
+      setIsSaved(stillSaved);
+      return !stillSaved;
+    } catch (err) {
+      setError(err.message || "Could not unsave this job right now. Please try again.");
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return { isAuthenticated, isSaved, isSaving, error, save, unsave };
 }

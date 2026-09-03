@@ -47,7 +47,7 @@ import "./JobDetail.scss";
 // the working one would be, not a separate aside.
 export default function JobDetail({ job }) {
   const navigate = useNavigate();
-  const { isAuthenticated, isSaved, isSaving, error: saveError, save } = useSavedJobState(job._id);
+  const { isAuthenticated, isSaved, isSaving, error: saveError, save, unsave } = useSavedJobState(job._id);
   const saveButton = getSaveButtonState({ isAuthenticated, isSaved, isSaving });
 
   const handleSaveClick = () => {
@@ -57,6 +57,9 @@ export default function JobDetail({ job }) {
     }
     if (saveButton.action === "save") {
       save();
+    }
+    if (saveButton.action === "unsave") {
+      unsave();
     }
   };
 

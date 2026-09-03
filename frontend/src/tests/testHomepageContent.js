@@ -62,6 +62,16 @@ console.log("\n[3] The newsletter feature (no real backend/API flow ever existed
 }
 
 // ---------------------------------------------------------------------------
+console.log("\n[3b] Footer.jsx's new 'Get job alerts' UI follows the same no-fake-success rule item 20 established — real UI, honest about having no backend yet");
+{
+  const footer = readSource("components/Footer.jsx");
+  check("a real email input + Subscribe control exists in Footer.jsx", /type="email"/.test(footer) && /Subscribe/.test(footer));
+  check("no fake 'subscribed'/'thank you for subscribing' success copy exists", !/thank you for subscribing/i.test(footer) && !/you('|')re subscribed/i.test(footer));
+  check("an honest 'not available yet' message is shown instead of a fake success state", /available yet/i.test(footer));
+  check("no fetch(...)/axios call is made — this is UI-only until a real backend endpoint exists", !/\bfetch\(/.test(footer) && !/\baxios\b/.test(footer));
+}
+
+// ---------------------------------------------------------------------------
 console.log("\n[4] The homepage reuses the single Phase 2G-2 JobCard — no second, homepage-specific job-card implementation (item 18)");
 {
   check("Home.jsx imports the real JobCard component", /import JobCard from ["']\.\.\/components\/JobCard\/JobCard["']/.test(HOME));
@@ -80,7 +90,20 @@ console.log("\n[5] The green theme now reaches the homepage's supporting content
     const offenders = KNOWN_PURPLE_HEXES.filter((hex) => source.toLowerCase().includes(hex));
     check(`${label} contains no old purple hex value`, offenders.length === 0);
   }
-  check("Footer.jsx reads its background from the shared MUI theme (primary.main), not a hardcoded one-off hex", /bgcolor:\s*"primary\.main"/.test(footer));
+  // Footer's dark bar background was changed from a flat bgcolor to the
+  // Career card's own gradient — verified for real just below (item [5b])
+  // by comparing the two literal gradient expressions, not by re-checking
+  // for the now-gone bgcolor line here.
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[5b] Footer.jsx's gradient background is the EXACT same formula/tokens as Home.jsx's Career card — no new color or gradient was introduced");
+{
+  const footer = readSource("components/Footer.jsx");
+  const GRADIENT_EXPR = "`linear-gradient(115deg, ${theme.palette.primary.deep} 0%, ${theme.palette.primary.main} 40%, ${theme.palette.oliveAccent} 100%)`";
+  check("Home.jsx's Career card uses this exact gradient expression", HOME.includes(GRADIENT_EXPR));
+  check("Footer.jsx uses the byte-identical gradient expression — same tokens, same angle, same stops", footer.includes(GRADIENT_EXPR));
+  check("Footer.jsx's old flat bgcolor:\"primary.main\" bar is gone (replaced by the gradient, not layered underneath it)", !/bgcolor:\s*"primary\.main"/.test(footer));
 }
 
 // ---------------------------------------------------------------------------

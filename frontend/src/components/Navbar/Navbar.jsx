@@ -127,6 +127,9 @@ export default function Navbar() {
                 <NavLink role="menuitem" to="/saved-jobs" className={navLinkClass} onClick={handleProfileMenuSelect}>Saved Jobs</NavLink>
               </li>
               <li role="none">
+                <NavLink role="menuitem" to="/add-job" className={navLinkClass} onClick={handleProfileMenuSelect}>Post a Job</NavLink>
+              </li>
+              <li role="none">
                 <button role="menuitem" type="button" onClick={handleLogout} className="logout-btn">Logout</button>
               </li>
             </ul>

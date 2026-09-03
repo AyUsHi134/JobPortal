@@ -109,6 +109,16 @@ console.log("\n[8] JobDetail's Save action lives alongside Apply in the existing
   check("the Apply link and the Save button are both inside the same job-actions block", /apply-btn/.test(actionsBlock) && /save-btn/.test(actionsBlock));
 }
 
+// ---------------------------------------------------------------------------
+console.log("\n[9] Both JobCard.jsx and JobDetail.jsx handle the 'unsave' action by calling the hook's unsave(), not a hand-rolled request");
+{
+  for (const [label, source] of [["JobCard.jsx", JOB_CARD], ["JobDetail.jsx", JOB_DETAIL]]) {
+    check(`${label} destructures unsave from useSavedJobState`, /\bunsave\b/.test(source));
+    check(`${label} calls unsave() when the button's action is "unsave"`, /action === "unsave"[\s\S]{0,80}unsave\(\)/.test(source));
+  }
+  check("the shared hook itself calls unsaveJob(jobId), matching userApi.js's own {jobId}-only contract", /unsaveJob\(jobId\)/.test(HOOK));
+}
+
 console.log("\n============================");
 console.log(` RESULT: ${passCount} passed, ${failCount} failed`);
 console.log("============================");

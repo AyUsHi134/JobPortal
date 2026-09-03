@@ -42,26 +42,88 @@
   }
 }
 
+// Half of .modern-job-card's own `margin: 12px auto` below (12px top +
+// 12px bottom = 24px total) — see the height rule further down for why
+// this needs to be a named, shared value rather than a second magic
+// number.
+$card-margin-y: 12px;
+
 /* The Card */
 .modern-job-card {
   width: 100%;
   max-width: 340px;
-  min-height: 320px;
-  background: $surface-color;
-  border-radius: $border-radius;
-  box-shadow: $box-shadow;
-  padding: 1.4rem 1.3rem;
+  min-height: 280px;
+  // The real fix for uneven row heights on Home.jsx: MUI's `Grid`
+  // container is flexbox with the browser's default `align-items:
+  // stretch`, so the Grid ITEM it renders around <JobCard> already
+  // stretches to match the row's tallest sibling — but .modern-job-card
+  // is a plain block CHILD of that stretched item, one level too deep to
+  // inherit a height from it automatically (block layout sizes to
+  // content, not to an ancestor's box). This line makes the card
+  // explicitly fill that already-correctly-stretched parent.
+  //
+  // A bare `height: 100%` would overflow: percentage height is
+  // calculated against the parent's box and does NOT account for the
+  // element's OWN margin the way genuine flex/grid stretch does — and
+  // since Home's Grid uses rowSpacing={0}, this card's own vertical
+  // margin (2 x $card-margin-y) is the only thing providing the gap
+  // between rows. Subtracting it here keeps the margin box (card +
+  // margin) exactly matching the stretched row height instead of
+  // spilling 24px past it.
+  //
+  // Safe everywhere else JobCard is used too: on a parent that doesn't
+  // provide a definite height (percentage basis indefinite), this
+  // resolves to `auto` per spec — a no-op, same as omitting it — and on
+  // FindJob.jsx/SavedJobs.jsx's real CSS Grid, where the card already
+  // stretches correctly via grid's own margin-aware default, this is
+  // redundant but harmless, not a regression.
+  height: calc(100% - #{$card-margin-y * 2});
+  // Visual-only correction to match the reference exactly: white card,
+  // slate-200 border, 16px (rounded-2xl) radius, shadow-sm at rest ->
+  // shadow-md + a small lift on hover. Width/max-width/min-height/flex
+  // layout are all untouched.
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); // Tailwind shadow-sm
   display: flex;
   flex-direction: column;
-  margin: 24px auto;
+  margin: $card-margin-y auto;
   position: relative;
-  transition: box-shadow 0.2s, border-color 0.2s;
-  gap: 0.7rem;
-  border: 1.5px solid $border-color;
+  // Clips .job-card-actions's own background/border-top to the card's
+  // rounded corners below, so its bottom edge reads as a genuine part of
+  // this card's shape rather than a hard-cornered rectangle poking out.
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+  border: 1px solid #e2e8f0; // Tailwind slate-200
 
   &:hover {
-    box-shadow: 0 6px 28px rgba(20, 60, 42, 0.14);
-    border-color: $primary-color;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); // Tailwind shadow-md
+    transform: translateY(-2px);
+  }
+
+  // Details/content area — carries the padding and inter-field spacing
+  // that used to live directly on .modern-job-card. flex: 1 1 auto is
+  // what fills the card's remaining height and pushes .job-card-actions
+  // to the bottom on a row of equal-height cards (replacing the old
+  // margin-top: auto that used to live on the actions row itself).
+  //
+  // justify-content: flex-start is the actual mechanism that keeps the
+  // gap: 12px rhythm between company/title/location/posted/tags natural
+  // (packed tightly at the top) and sends any leftover height this
+  // element grows into — from a shorter row-sibling being stretched to
+  // match a taller one, or from .modern-job-card's own min-height floor
+  // below — to a single block AFTER the last rendered field, immediately
+  // before .job-card-actions. This was already the browser default
+  // (flex-start is justify-content's initial behavior), made explicit
+  // here so it can't be silently changed later by an edit that assumes
+  // otherwise.
+  .job-card-details {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 24px;
   }
 
   // 1. Company
@@ -81,27 +143,32 @@
     }
     .job-company {
       font-weight: 600;
-      color: $text-muted;
-      font-size: 0.92em;
+      color: #7f91a8; // slightly darker than Tailwind slate-400, same muted blue-gray family
+      font-size: 14px;
       @include wrap-safely;
     }
   }
 
-  // 2. Job title
+  // 2. Job title — no min-height floor: that used to reserve 2 lines'
+  // worth of box height even for a 1-line title, which left a large
+  // dead gap between the title and the next field (way bigger than the
+  // 12px gap every other field-to-field transition uses). Height is now
+  // purely content-driven (line-height x actual line count), so every
+  // gap in the stack is the same 12px `gap` from .job-card-details.
   .job-title {
     margin: 0;
-    font-size: 1.16em;
+    font-size: 18px;
     font-weight: 700;
-    color: $text-dark;
+    color: #0f172a; // Tailwind slate-900
     letter-spacing: 0.01em;
-    line-height: 1.3;
+    line-height: 1.375;
     @include wrap-safely;
   }
 
   // 3. Location
   .job-location {
-    color: $text-light;
-    font-size: 0.95em;
+    color: #047857; // Tailwind emerald-700
+    font-size: 14px;
     font-weight: 500;
     @include wrap-safely;
   }
@@ -114,152 +181,165 @@
     font-size: 0.94em;
   }
 
-  // 5. Posted date
+  // 5. Posted date — Tailwind slate-500, same value as before; font-size
+  // now an exact 12px per this pass's reference spec (was 0.82em).
   .job-card-meta {
-    font-size: 0.82em;
-    color: $text-muted;
+    font-size: 12px;
+    color: #566579; // slightly darker than Tailwind slate-500, for readability
   }
 
-  // 6. Tags/badges — 2G-7C: moved from a fixed slot above the company row
-  // to here, after the posted date. This whole block is only rendered by
-  // JobCard.jsx when there's at least one real badge or skill, so a job
-  // with neither doesn't leave a gap here — no min-height reservation is
-  // needed or wanted at this position (unlike the old top-of-card slot,
-  // this one has no earlier content whose position it needs to protect).
+  // 6. Tags — ONE shared tag container (task requirement): every status
+  // badge (Remote/Experience/Tech) AND every tech-stack skill tag (Go,
+  // React, Express, SQL, ...) wraps together in a single row, never
+  // split into separate rows by category. .job-badges/.job-skills stay
+  // as their own conditionally-rendered wrappers in JobCard.jsx
+  // (unchanged there), but are `display: contents` below — they
+  // contribute no box/layout of their own, so their <span> children
+  // become direct flex items of .job-tags-section, which is the actual
+  // shared flex-wrap container.
   .job-tags-section {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 4px;
+  }
+
+  .job-badges,
+  .job-skills {
+    display: contents;
+  }
+
+  // Centralized tag-type sizing: every tag — status badge or tech-stack
+  // skill tag alike — shares this ONE pill geometry (padding/radius/
+  // font), so no category duplicates or drifts from another's shape.
+  // Each class below then only ever supplies its own color pairing.
+  .badge,
+  .skill-chip {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    @include wrap-safely;
   }
 
   .job-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-
-    .badge {
-      font-size: 0.76em;
-      font-weight: 700;
-      border-radius: 8px;
-      padding: 3px 10px;
-      letter-spacing: 0.02em;
-      @include wrap-safely;
-    }
-    // Semantic badge colors, reading from the 2G-7A $badge-* accent
-    // pairs so each badge's color is tied to its MEANING (never assigned
-    // randomly per card) — soft, restrained fills, not saturated/neon.
-    // Work-mode signal — soft green background + deep green text, the
-    // single most decision-relevant badge on the card.
+    // Semantic badge colors — each tied to its MEANING (never assigned
+    // randomly per card), soft/restrained fills, not saturated/neon.
+    // Visual-only correction this pass: Remote/Senior/Tech now use the
+    // exact reference hex pairs below (Tailwind emerald-50/emerald-700,
+    // violet-50/violet-700, indigo-50/indigo-700) instead of the
+    // previous $badge-* tokens, per this pass's explicit "use the exact
+    // hex values rather than inventing approximate colors" instruction.
+    // Entry/Fresher ($badge-yellow-*) is untouched — out of this pass's
+    // given spec.
     .badge-remote {
-      background: $badge-green-bg;
-      color: $badge-green-text;
+      background: #ecfdf5; // Tailwind emerald-50
+      color: #047857; // Tailwind emerald-700
     }
-    // Experience — two tones depending on level (badge-experience--entry
-    // vs. --senior below), not one flat gray, so "Fresher" reads as a
-    // distinct, encouraging signal from "Senior."
     .badge-experience--entry {
       background: $badge-yellow-bg;
       color: $badge-yellow-text;
     }
     .badge-experience--senior {
-      background: $badge-lavender-bg;
-      color: $badge-lavender-text;
+      background: #f5f3ff; // Tailwind violet-50
+      color: #6d28d9; // Tailwind violet-700
     }
-    // Tech relevance — soft blue background + dark blue text, a filled
-    // treatment consistent with the other two semantic badges.
+    // Tech relevance — the same shared indigo every individual
+    // tech-stack skill tag below also uses (see .job-skills .skill-chip),
+    // so "this is a tech job" and "these are its specific technologies"
+    // read as one coherent indigo family rather than two unrelated colors.
     .badge-tech {
-      background: $badge-blue-bg;
-      color: $badge-blue-text;
+      background: #eef2ff; // Tailwind indigo-50
+      color: #4338ca; // Tailwind indigo-700
     }
   }
 
-  // Skills — visually distinct from the badges above (outlined, neutral
-  // chips rather than the badges' colored fills) so the two categories
-  // of metadata never blur together, even sitting in the same section.
+  // Tech-stack tags (Go, Golang, React, Express, SQL, ...) — every one
+  // gets this SAME shared subtle indigo, never its own per-tag color; a
+  // tag's specific technology isn't a distinct semantic category the way
+  // Remote/Experience/Tech-relevance are. If the source data has
+  // near-duplicate tags (e.g. "go" and "golang" as two separate
+  // entries), that's rendered exactly as-is here — deduplication is a
+  // backend/data concern, not something this rendering layer silently
+  // "fixes."
   .job-skills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-
     .skill-chip {
-      background: $background;
-      color: $text-dark;
-      border: 1px solid $border-color;
-      border-radius: $border-radius-sm;
-      padding: 3px 10px;
-      font-size: 0.76em;
-      font-weight: 500;
-      @include wrap-safely;
+      background: #eef2ff; // Tailwind indigo-50
+      color: #4338ca; // Tailwind indigo-700
     }
   }
 
-  // Pushes the action row to the bottom of the card even when optional
-  // metadata (location/salary/posted/tags) is missing, so the action
-  // area's position stays visually consistent card-to-card.
+  // Action area — a visually separate bottom section rather than more
+  // content inside .job-card-details's own padding. Visual-only
+  // correction this pass: background and divider are now both the exact
+  // Tailwind slate-100 (#f1f5f9) the reference specifies — the divider
+  // is deliberately the SAME shade as the background it sits on (barely
+  // perceptible against the action area itself), so the only real
+  // visible seam is the natural step from the white details area above
+  // it, which is the "subtle divider" effect item 12 of the reference
+  // asks for. .job-card-details's own flex: 1 1 auto (above) is what
+  // keeps this section pinned to the bottom of equal-height cards.
   .job-card-actions {
-    margin-top: auto;
-    padding-top: 8px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
+    padding: 16px;
+    background: #f1f5f9; // Tailwind slate-100
+    border-top: 1px solid #f1f5f9; // Tailwind slate-100
 
-    // 2G-7C button-hierarchy correction: View Details moves from a light
-    // filled treatment to a clean outlined one — a colored border/text
-    // ($secondary-color, a distinct medium green) rather than a fill, so
-    // it reads as a clearly "quieter, tertiary" action next to Search's
-    // solid medium-green fill and Sign Up's solid dark-green fill
-    // (Navbar.scss). It stays a stronger-looking outline than the
-    // neutral-gray-bordered Save button beside it (colored border vs.
-    // $border-color), so the two outlined controls remain distinguishable
-    // from each other, not just from the two filled CTAs elsewhere.
-    .view-details-btn {
-      background: $surface-color;
-      color: $secondary-color;
-      border: 1.5px solid $secondary-color;
-      border-radius: $border-radius-sm;
-      font-weight: 600;
-      padding: 8px 20px;
-      font-size: 0.94em;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-
-      &:hover {
-        background: $sage-color;
-        border-color: $primary-color;
-        color: $primary-color;
-      }
-    }
-
-    // 2G-7C: gained a bookmark icon (filled when saved, outlined
-    // otherwise) beside the existing text label — purely visual; the
-    // button's click handler/disabled/aria-pressed wiring is untouched.
+    // Shared button geometry — equal/flexible widths (flex: 1 1 0) so
+    // both buttons split the row evenly, same padding/radius for both,
+    // and both center their own content now that they're wider than
+    // their text. gap (6px) is the icon-to-label spacing Save/Unsave's
+    // bookmark icon uses; View Details has no second inline child, so
+    // it's a no-op there.
+    .view-details-btn,
     .save-btn {
-      background: $surface-color;
-      color: $primary-color;
-      border: 1.4px solid $border-color;
-      border-radius: $border-radius-sm;
-      font-weight: 500;
-      padding: 8px 18px;
+      flex: 1 1 0;
+      padding: 10px 16px;
+      border-radius: 8px;
       font-size: 0.94em;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      transition: border-color 0.15s, color 0.15s;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    // View Details — visual-only correction: a light teal tonal/filled
+    // treatment (no border — "not outlined" per this pass's explicit
+    // instruction) instead of the previous green outline. Functionality
+    // (onClick/navigation) is entirely in JobCard.jsx and untouched.
+    .view-details-btn {
+      background: #dff7f3; // slightly deeper than Tailwind teal-50
+      color: #115e59; // Tailwind teal-800
+      border: none;
+      font-weight: 600;
+      transition: background 0.15s;
+
+      &:hover {
+        background: #ccfbf1; // Tailwind teal-100
+      }
+    }
+
+    // Save/Unsave — visual-only correction: a light amber tonal/filled
+    // treatment (no border, matching View Details' now-borderless
+    // treatment) instead of the previous neutral outline/green-on-saved
+    // colors. The bookmark icon (filled when saved, outlined otherwise)
+    // already communicates saved-vs-unsaved on its own, so both states
+    // now share this one amber treatment rather than a second color
+    // scheme. Click handler/disabled/aria-pressed wiring lives entirely
+    // in JobCard.jsx and is untouched here.
+    .save-btn {
+      background: #fff4d6; // slightly deeper than Tailwind amber-50
+      color: #92400e; // Tailwind amber-800
+      border: none;
+      font-weight: 500;
 
       svg {
         font-size: 1.1em;
       }
 
-      &:hover:not(:disabled) {
-        border-color: $primary-color;
-      }
-      &.saved {
-        color: $success-color;
-        border-color: $success-color;
-      }
       &:disabled {
         cursor: default;
         opacity: 0.85;
@@ -268,7 +348,8 @@
   }
 
   .job-save-error {
-    margin: 4px 0 0;
+    margin: 0;
+    padding: 8px 24px 0;
     color: $danger-color;
     font-size: 0.85em;
   }

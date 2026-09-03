@@ -1,0 +1,198 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+// Same gradient formula the app already established for its dark-green
+// "hero-ish" surfaces (FindJob.scss's &__intro): $primary-deep ->
+// $primary-color -> $olive-accent, 115deg, stops at 0/40/100% — no new
+// gradient or hex value introduced here.
+.footer {
+  &__top {
+    background: linear-gradient(115deg, $primary-deep 0%, $primary-color 40%, $olive-accent 100%);
+    color: $surface-color;
+    padding: 2.5rem 6vw 1.5rem;
+
+    @include laptop-down {
+      padding: 2.2rem 5vw 1.3rem;
+    }
+  }
+
+  &__grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+
+    @include tablet-down {
+      flex-direction: column;
+      gap: 2rem;
+    }
+  }
+
+  &__col {
+    flex: 1 1 220px;
+    padding-right: 1.5rem;
+    border-right: 1px solid rgba($border-subtle, 0.35);
+
+    &:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    @include tablet-down {
+      border-right: none;
+      padding-right: 0;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba($border-subtle, 0.35);
+
+      &:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+    }
+  }
+
+  &__heading {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0 0 0.85rem;
+  }
+
+  &__brand-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0 0 0.6rem;
+  }
+
+  &__tagline {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: rgba($surface-color, 0.85);
+    margin: 0;
+  }
+
+  &__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+
+    a {
+      color: rgba($surface-color, 0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: opacity 0.15s, color 0.15s;
+
+      &:hover,
+      &:focus-visible {
+        color: $surface-color;
+        opacity: 1;
+        text-decoration: underline;
+      }
+
+      @include focus-ring;
+    }
+  }
+
+  &__newsletter-text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: rgba($surface-color, 0.85);
+    margin: 0 0 0.9rem;
+  }
+
+  &__newsletter-form {
+    display: flex;
+    gap: 0.6rem;
+
+    @include mobile {
+      flex-wrap: wrap;
+    }
+  }
+
+  &__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    border-radius: $border-radius-sm;
+    background: $surface-color;
+    color: $text-dark;
+    padding: 0.6em 0.9em;
+    font-size: 0.9rem;
+    font-family: $font-main;
+
+    &::placeholder {
+      color: $text-muted;
+    }
+
+    @include focus-ring;
+  }
+
+  &__subscribe-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: none;
+    border-radius: $border-radius-sm;
+    background: $surface-color;
+    color: $primary-color;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.6em 1.1em;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover {
+      background: $accent-color;
+    }
+
+    @include focus-ring;
+
+    svg {
+      font-size: 1.1rem;
+    }
+  }
+
+  &__newsletter-status {
+    margin: 0.65rem 0 0;
+    font-size: 0.82rem;
+    color: rgba($surface-color, 0.85);
+  }
+
+  &__social {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  &__social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba($surface-color, 0.12);
+    color: $surface-color;
+    transition: background 0.15s;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba($surface-color, 0.22);
+    }
+
+    @include focus-ring;
+  }
+
+  &__bottom {
+    max-width: 1200px;
+    margin: 2rem auto 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba($border-color, 0.3);
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+}

@@ -4,17 +4,6 @@
 // unit-testable without any component rendering, mirroring the same
 // pattern established in utils/jobDiscoveryState.js (Phase 2C) and
 // utils/jobDetailState.js (Phase 2D).
-//
-// There is deliberately no "unsave" action here: BACKEND_API_CONTRACT.md
-// §6 only documents POST /api/user/savejob and POST /api/user/issaved —
-// no remove-saved-job endpoint exists on the backend today (confirmed,
-// not an oversight — see PHASE_2B_REPORT.md §5 and testUserApi.js [6]).
-// Building a fake client-side "unsave" would either call a URL the
-// backend doesn't implement or silently lie about the saved state until
-// the next reload reverts it — both violate this project's established
-// data-honesty rule. The "Saved" state is therefore always a disabled,
-// terminal state once reached; a real unsave UI needs a new backend
-// endpoint first (see PHASE_2E_REPORT.md's known limitations).
 
 /**
  * @param {{isAuthenticated: boolean, isSaved: boolean, isSaving: boolean}} state
@@ -33,7 +22,9 @@ export function getSaveButtonState({ isAuthenticated, isSaved, isSaving }) {
     return { label: "Saving...", disabled: true, action: "none" };
   }
   if (isSaved) {
-    return { label: "Saved", disabled: true, action: "none" };
+    // Enabled, not terminal: POST /api/user/unsavejob now exists, so a
+    // saved job can be un-saved directly from the same button.
+    return { label: "Saved", disabled: false, action: "unsave" };
   }
   return { label: "Save", disabled: false, action: "save" };
 }
@@ -51,4 +42,16 @@ export function getSaveButtonState({ isAuthenticated, isSaved, isSaving }) {
  */
 export function resolveSavedStateAfterSave(jobId, savedJobIds) {
   return Array.isArray(savedJobIds) ? savedJobIds.includes(jobId) : true;
+}
+
+/**
+ * Same trust rule as resolveSavedStateAfterSave, applied to
+ * `POST /api/user/unsavejob`'s response: returns the job's real `isSaved`
+ * state by checking whether it's still present in the backend's returned
+ * list, rather than assuming the removal worked just because the request
+ * didn't throw. A non-array response (defensive) falls back to trusting a
+ * non-throwing response as success — i.e. no longer saved.
+ */
+export function resolveSavedStateAfterUnsave(jobId, savedJobIds) {
+  return Array.isArray(savedJobIds) ? savedJobIds.includes(jobId) : false;
 }

@@ -15,6 +15,7 @@ const JOB_QUERY_PARAM_KEYS = [
   "city",
   "location",
   "source",
+  "language",
   "sort",
   "page",
   "limit",

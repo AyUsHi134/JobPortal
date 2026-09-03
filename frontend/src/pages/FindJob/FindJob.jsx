@@ -210,6 +210,15 @@ export default function FindJob() {
             </label>
 
             <label className="filter-label">
+              Language
+              <select value={filters.language} onChange={(e) => updateFilter("language", e.target.value)}>
+                <option value="en">English</option>
+                <option value="other">Other languages</option>
+                <option value="all">All languages</option>
+              </select>
+            </label>
+
+            <label className="filter-label">
               Sort by
               <select value={filters.sort} onChange={(e) => updateFilter("sort", e.target.value)}>
                 <option value="newest">Newest first</option>

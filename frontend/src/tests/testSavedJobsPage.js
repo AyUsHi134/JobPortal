@@ -122,7 +122,16 @@ console.log("\n[6] SavedJobs.jsx — reuses JobCard rather than duplicating its 
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n[7] The /saved-jobs route (already linked from Navbar.jsx) is now actually registered in App.jsx");
+console.log("\n[7] SavedJobs.jsx — an unsaved job is removed from the displayed list immediately, not just left stale until reload");
+{
+  const source = readSource("pages/SavedJobs/SavedJobs.jsx");
+  check("passes onUnsaved to JobCard so a confirmed unsave can be reported back up", /<JobCard\s+job=\{job\}\s+onUnsaved=\{handleUnsaved\}/.test(source));
+  check("handleUnsaved filters the removed job out of the jobs list by id", /setJobs\(\(prev\)\s*=>\s*prev\.filter\(\(job\)\s*=>\s*job\._id\s*!==\s*jobId\)\)/.test(source));
+  check("the old 'jobs can't be removed from this list' hint is gone (the feature now exists)", !/can.t be removed from this list/.test(source));
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[8] The /saved-jobs route (already linked from Navbar.jsx) is now actually registered in App.jsx");
 {
   const appSource = readSource("App.jsx");
   const navbarSource = readSource("components/Navbar/Navbar.jsx");

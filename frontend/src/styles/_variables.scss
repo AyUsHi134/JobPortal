@@ -82,7 +82,7 @@ $danger-color: #b3392f;    // unchanged — error meaning stays red
 $success-color: #2f9e5c;   // unchanged — was already a distinct, appropriate green
 $border-color: #dee6dd;    // soft neutral green-gray border
 $border-subtle: #eaefe8;   // an even softer divider/border for nested surfaces (card-on-card, dropdown edges)
-$navbar-bg-desktop: #f5f7f5; // NEW — a very subtle cool grey/off-white for the desktop navbar bar only, visibly softer than $surface-color's warm near-white; mobile/tablet-down keeps $surface-color unchanged
+$navbar-bg-desktop: rgba(255, 255, 255, 0.2); // Semi-transparent WHITE glass (was a grey-tinted rgba, before that an opaque #f5f7f5) so the sage page background stays visibly readable through it — paired with backdrop-filter: blur() on .navbar in Navbar.scss; mobile/tablet-down keeps $surface-color (opaque) unchanged
 $border-radius: 18px;
 $border-radius-sm: 11px;
 $box-shadow: 0 2px 20px rgba(20, 45, 32, 0.08); // restrained, green-tinted shadow — soft, not heavy

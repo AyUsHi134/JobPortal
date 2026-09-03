@@ -16,6 +16,7 @@ export const DEFAULT_DISCOVERY_FILTERS = {
   is_remote: "",
   location: "",
   source: "",
+  language: "en",
   sort: "newest",
   page: 1,
 };

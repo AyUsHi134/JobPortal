@@ -46,7 +46,10 @@ console.log("============================");
 console.log("\n[1] The real desktop layout bug is fixed: .navbar is now the flex container joining its two children onto one line, not two unjoined block-level siblings");
 {
   const navbarRuleStart = NAVBAR_SCSS.indexOf(".navbar {");
-  check(".navbar itself is a flex container (not just its children individually)", /^\.navbar \{[\s\S]{0,400}display:\s*flex/.test(NAVBAR_SCSS.slice(navbarRuleStart)));
+  // Window widened 400 -> 500: `.navbar`'s own declarations legitimately
+  // grew (translucent background + backdrop-filter + sticky positioning)
+  // before reaching `display: flex` — more real CSS, not a workaround.
+  check(".navbar itself is a flex container (not just its children individually)", /^\.navbar \{[\s\S]{0,500}display:\s*flex/.test(NAVBAR_SCSS.slice(navbarRuleStart)));
   check(".navbar__bar sizes to its own content (flex: 0 0 auto) rather than stretching full-width on desktop", /\.navbar__bar\s*\{[\s\S]{0,150}flex:\s*0 0 auto/.test(NAVBAR_SCSS));
   check(".navbar__links fills the remaining width on desktop (flex: 1 1 auto)", /\.navbar__links\s*\{[\s\S]{0,150}flex:\s*1 1 auto/.test(NAVBAR_SCSS));
 }

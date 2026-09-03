@@ -8,14 +8,7 @@ import AuthRequired from "../components/AuthRequired/AuthRequired.jsx";
 // this now correctly sends the Authorization header POST /api/jobs
 // requires (BACKEND_API_CONTRACT.md §5) and surfaces the backend's real
 // error message instead of a blind "Failed to add job" for every
-// failure. The form's fields are intentionally NOT changed here: the
-// backend's normalized schema expects a structured `location` object and
-// a `job_type` field, but this form still submits a flat `location`
-// string and an unrelated `type` field (silently dropped by the
-// backend's own field whitelist), so a real submission will very likely
-// still fail with a 400 today. Reworking the form itself is explicitly
-// deferred to Phase 2F (FRONTEND_AUDIT.md §18) — see PHASE_2B_REPORT.md
-// for the full reasoning.
+// failure.
 //
 // Phase 2E: this endpoint requires authentication
 // (BACKEND_API_CONTRACT.md §5) but the page previously let an
@@ -24,9 +17,20 @@ import AuthRequired from "../components/AuthRequired/AuthRequired.jsx";
 // up front instead — the backend remains the real authorization
 // boundary either way; this is purely a "don't invite a request that's
 // guaranteed to fail" UX fix.
+//
+// Later fix: the form previously submitted a flat `location` string and
+// an unrelated `type` field — the backend's Job schema expects a
+// structured `location.raw` and a `job_type` field, and its
+// UPSERT_CONTENT_FIELDS whitelist (jobService.js) silently dropped
+// `type` entirely, so submissions reliably 400'd. `job_type` now matches
+// the whitelist key, and `location` is built as `{ raw: locationInput }`
+// on submit — the only subfield the schema requires
+// (display_name/city/state/country stay unset; there's no UI collecting
+// those separately). `source` needs no change here — createManualJob
+// (jobService.js) already auto-fills it server-side.
 export default function AddJob() {
   const { isAuthenticated } = useAuth();
-  const [form, setForm] = useState({ title: "", company: "", location: "", type: "", description: "" });
+  const [form, setForm] = useState({ title: "", company: "", location: "", job_type: "", description: "" });
   const [status, setStatus] = useState("idle"); // idle | submitting | success | error
   const [message, setMessage] = useState("");
 
@@ -38,9 +42,9 @@ export default function AddJob() {
     setStatus("submitting");
     setMessage("");
     try {
-      await createJob(form);
+      await createJob({ ...form, location: { raw: form.location } });
       setStatus("success");
-      setForm({ title: "", company: "", location: "", type: "", description: "" });
+      setForm({ title: "", company: "", location: "", job_type: "", description: "" });
     } catch (err) {
       setMessage(err.message || "Failed to add job");
       setStatus("error");
@@ -59,19 +63,6 @@ export default function AddJob() {
             Add New Job
           </Typography>
 
-          {/* Phase 2F: an honest, visible note rather than a silent trap —
-              this form still submits a flat `location` string and an
-              unrelated `type` field (BACKEND_API_CONTRACT.md §5 expects a
-              structured `location` object and has no `type` field at
-              all), so a real submission will likely be rejected with a
-              400 today. Reworking the form's data contract is out of this
-              polish-only phase's scope (see PHASE_2F_REPORT.md §10); this
-              note exists so a user isn't left guessing why submission
-              failed. */}
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Job posting is still being finalized against the current data model — submitting may not succeed yet.
-          </Alert>
-
           {status === "success" && (
             <Alert severity="success" role="status" sx={{ mb: 2 }}>Job added!</Alert>
           )}
@@ -83,7 +74,7 @@ export default function AddJob() {
             <TextField fullWidth required label="Job Title" name="title" value={form.title} onChange={handleChange} sx={{ mb: 2 }} />
             <TextField fullWidth required label="Company" name="company" value={form.company} onChange={handleChange} sx={{ mb: 2 }} />
             <TextField fullWidth required label="Location" name="location" value={form.location} onChange={handleChange} sx={{ mb: 2 }} />
-            <TextField fullWidth required label="Type" name="type" value={form.type} onChange={handleChange} sx={{ mb: 2 }} />
+            <TextField fullWidth required label="Type" name="job_type" value={form.job_type} onChange={handleChange} sx={{ mb: 2 }} />
             <TextField fullWidth required label="Description" name="description" value={form.description} onChange={handleChange} multiline minRows={3} sx={{ mb: 2 }} />
             <Button type="submit" variant="contained" color="primary" fullWidth disabled={status === "submitting"}>
               {status === "submitting" ? "Adding..." : "Add Job"}

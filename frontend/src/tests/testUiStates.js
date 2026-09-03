@@ -108,11 +108,11 @@ console.log("\n[4] Empty states explain what's empty AND offer a next action, no
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n[5] The Saved Jobs page is honest about the unsave limitation instead of silently omitting the capability with no explanation");
+console.log("\n[5] The Saved Jobs page supports real unsave — the old 'can't be removed' limitation notice is gone now that the capability exists");
 {
   const source = readSource("pages/SavedJobs/SavedJobs.jsx");
-  check("a visible note explains jobs can't be removed from the list via the app yet", /can.t be removed from this list/.test(source));
-  check("no unsave/remove button or handler was fabricated", !/handleUnsave|removeSavedJob|unsaveJob/i.test(source));
+  check("the old 'jobs can't be removed from this list' disclaimer is gone", !/can.t be removed from this list/.test(source));
+  check("a real handleUnsaved handler exists and is wired to JobCard", /handleUnsaved/.test(source));
 }
 
 // ---------------------------------------------------------------------------

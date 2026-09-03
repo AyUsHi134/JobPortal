@@ -154,13 +154,21 @@ console.log("\n[7] Navbar active-route styling was redesigned into a restrained 
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n[8] Navbar surfaces were softened/layered to match the new design system (subtle border, restrained shadow) without changing its structure — desktop background is a very subtle cool grey/off-white ($navbar-bg-desktop), distinct from $surface-color which cards/mobile-nav still use");
+console.log("\n[8] Navbar surfaces were softened/layered to match the new design system (subtle border, restrained shadow) without changing its structure — desktop background is a translucent white glass layer ($navbar-bg-desktop), distinct from $surface-color which cards/mobile-nav still use");
 {
   const navbarRuleStart = NAVBAR_SCSS.indexOf(".navbar {");
   const navbarTopBlock = NAVBAR_SCSS.slice(navbarRuleStart, navbarRuleStart + 400);
   check("the navbar's default (desktop) background uses the new $navbar-bg-desktop token, not $surface-color or a bare #fff literal", /background:\s*\$navbar-bg-desktop/.test(navbarTopBlock));
-  check("$navbar-bg-desktop is defined as a very subtle cool grey/off-white (#f5f7f5), visibly softer than $surface-color but not grey", /\$navbar-bg-desktop:\s*#f5f7f5/i.test(VARIABLES));
+  // A later glass-navbar pass first made $navbar-bg-desktop a translucent
+  // grey-tinted rgba (was the opaque hex #f5f7f5), then a still later pass
+  // switched its RGB channels to pure white — a semi-transparent WHITE
+  // layer, per this pass's explicit "whitish translucent glass" request —
+  // while keeping the same alpha-channel/backdrop-filter approach. Updated
+  // in place per this project's "revise the check for an intentional
+  // change" convention.
+  check("$navbar-bg-desktop is a semi-transparent WHITE fill (rgba(255, 255, 255, ...), not a fully opaque fill and not grey-tinted)", /\$navbar-bg-desktop:\s*rgba\(\s*255,\s*255,\s*255,\s*0(\.\d+)?\s*\)/i.test(VARIABLES));
   check("$navbar-bg-desktop is distinct from $surface-color (cards stay warm off-white, the navbar reads a cooler subtle grey)", !/\$navbar-bg-desktop:\s*#fcfdfb/i.test(VARIABLES));
+  check("Navbar.scss pairs the translucent background with an actual backdrop blur (with a -webkit- prefix for Safari), not just a lower-opacity color with no glass effect", /-webkit-backdrop-filter:\s*blur\(/.test(NAVBAR_SCSS) && /(?<!-webkit-)backdrop-filter:\s*blur\(/.test(NAVBAR_SCSS));
   check("the navbar's own border/shadow read from the new subtle tokens (not the old harder-edged values)", /border-bottom:\s*1px solid \$border-subtle/.test(navbarTopBlock));
 
   // Mobile/tablet-down explicitly reverts to $surface-color — only the
@@ -172,7 +180,11 @@ console.log("\n[8] Navbar surfaces were softened/layered to match the new design
   // Structural regressions would be caught by testResponsiveNavigation.js
   // — this file only asserts the visual/token layer changed, not the
   // flex/breakpoint mechanics (which are unchanged this phase).
-  check("the desktop flex layout fix from Phase 2G-1 is still present (.navbar is still the flex container)", /^\.navbar \{[\s\S]{0,400}display:\s*flex/.test(NAVBAR_SCSS.slice(navbarRuleStart)));
+  // Window widened 400 -> 500: the `.navbar` rule's own declarations
+  // legitimately grew (translucent background + backdrop-filter + sticky
+  // positioning, all added in later passes) before reaching `display:
+  // flex` — not a magic-number workaround, just more real CSS ahead of it.
+  check("the desktop flex layout fix from Phase 2G-1 is still present (.navbar is still the flex container)", /^\.navbar \{[\s\S]{0,500}display:\s*flex/.test(NAVBAR_SCSS.slice(navbarRuleStart)));
 }
 
 // ---------------------------------------------------------------------------
@@ -257,18 +269,27 @@ console.log("\n[13] The intro card still uses the exact same diagonal (115deg) 3
 
   // The compact card is a genuinely small, rounded element now — not a
   // full-bleed section: it carries its own borderRadius, and is a child of
-  // the width-bounded LEFT COLUMN wrapper (which also now holds the
-  // "Why Choose Us" card stacked beneath it — see [14] below — so the
-  // maxWidth constraint lives one level up, on that shared column wrapper,
-  // rather than on the gradient card's own immediate Box).
+  // the width-bounded LEFT COLUMN wrapper (which also now holds Search
+  // above it and the "Why Choose Us" card below it — see [14] below — so
+  // the maxWidth constraint lives one level up, on that shared column
+  // wrapper, rather than on the gradient card's own immediate Box).
   const gradientIdx = HOME_JSX.indexOf("linear-gradient(115deg");
   const cardBlockStart = HOME_JSX.lastIndexOf("<Box", gradientIdx);
   const cardBlock = HOME_JSX.slice(cardBlockStart, gradientIdx);
-  const columnWrapperBlock = HOME_JSX.slice(Math.max(0, cardBlockStart - 400), gradientIdx);
+  // Anchored to the left column wrapper's own flex-basis literal (rather
+  // than a fixed raw-character lookback window) since Search now renders
+  // ahead of the gradient card inside that same wrapper (SS3 composition,
+  // see [14]) — a fixed-width window would no longer reliably span from
+  // the wrapper's maxWidth down to the gradient regardless of how much
+  // markup sits between them.
+  const columnWrapperStart = HOME_JSX.lastIndexOf('flex: "1 1 280px"', gradientIdx);
+  const columnWrapperBlock = HOME_JSX.slice(Math.max(0, columnWrapperStart), gradientIdx);
   check("the gradient card has its own border radius (a rounded card, not a square full-width band)", /borderRadius:\s*3/.test(cardBlock));
-  // Widened from 340 to 400 in a later visual-polish pass (modest career-
-  // card/Why-Choose-Us proportion increase, still bounded — not stretched
-  // full-page-width).
+  // Widened 340 -> 400 -> 460 across two visual-polish passes, then
+  // narrowed back to 400 in a later balance pass (to give Recent Jobs
+  // slightly more horizontal space while the Career/Why-Choose-Us cards'
+  // heights/typography stayed put) — still bounded, not stretched
+  // full-page-width.
   check("the gradient card's column is width-bounded (maxWidth), not stretched full-page-width", /maxWidth:\s*\{\s*md:\s*400\s*\}/.test(columnWrapperBlock));
 }
 
@@ -282,24 +303,16 @@ console.log("\n[13b] The old full-bleed wave/curve SVG divider is gone entirely 
 }
 
 // ---------------------------------------------------------------------------
-// A later composition-only revision (SS1 target) moved the search toolbar
-// OUT of the intro card's row and into its own full-width row directly
-// under the navbar (itself later merged into one continuous white shell
-// with the navbar — no more visible sage gap between them), then made the
-// intro card the LEFT column of a two-column area (intro card + "Why
-// Choose Us" | Recent Jobs + job grid) instead of the card's row-sibling.
-// "Why Choose Us" itself moved from its own standalone full-width white
-// section into a compact card stacked beneath the intro card in that same
-// left column (same text/features, no duplication — see its own dedicated
-// check further down this file). Section [14] below is updated in place
-// for this intentional reordering (same convention as [13]/[13b] above) —
-// the search form is no longer expected beside the gradient card; it now
-// comes BEFORE the entire sage two-column area, and the gradient card is
-// now the row-sibling of the Recent Jobs column instead. The old raw
-// character-distance check between the card and "Recent Jobs" was replaced
-// with a structural one (no Footer/second Container boundary between them)
-// since the left column legitimately grew once Why Choose Us joined it.
-console.log("\n[14] The search toolbar is its own full-width row ABOVE the two-column area; the intro gradient card is now the LEFT column, row-sibling of the Recent Jobs column, not of the search form — still the same unchanged handleHeroSearch/validateSearchQuery handoff, still a white card, and the sage section's two-column row still starts with the gradient card followed (after Why Choose Us) by Recent Jobs");
+// SS3 composition (revising SS1/SS2 above, same "update the check in place"
+// convention): the search toolbar no longer has its own full-width row
+// above the sage section at all — it has moved INSIDE the sage two-column
+// area, as the first element of the narrow LEFT column, ahead of the
+// gradient card and "Why Choose Us" (Search -> Career -> Why Choose Us),
+// matching a visual mockup's "search at the top of a narrow sidebar"
+// proportions. The old standalone white Container maxWidth="md" shell
+// above the sage section is gone entirely. The RIGHT column (Recent Jobs)
+// is still the row-sibling of that whole LEFT column, unchanged.
+console.log("\n[14] Search now sits INSIDE the sage two-column area as the first element of the LEFT column (Search -> Career card -> Why Choose Us); Recent Jobs stays the row-sibling RIGHT column — still the same unchanged handleHeroSearch/validateSearchQuery handoff, and the old standalone white search shell above the sage section is gone");
 {
   const formIdx = HOME_JSX.indexOf('component="form"');
   const sageBoxIdx = HOME_JSX.indexOf('bgcolor: "background.sage"');
@@ -307,31 +320,39 @@ console.log("\n[14] The search toolbar is its own full-width row ABOVE the two-c
   const recentJobsHeadingIdx = HOME_JSX.indexOf("Recent Jobs", sageBoxIdx);
   const footerIdx = HOME_JSX.indexOf("<Footer");
 
-  check("the search form comes BEFORE the sage two-column area in DOM order (its own row, not nested inside it)", formIdx !== -1 && sageBoxIdx !== -1 && formIdx < sageBoxIdx);
-  check("the intro gradient card lives INSIDE the sage box, i.e. it is now paired with Recent Jobs rather than with the search form", sageBoxIdx !== -1 && gradientIdx !== -1 && sageBoxIdx < gradientIdx);
-  check("the intro card and the Recent Jobs heading stay within the same sage two-column area — no Footer (or any section boundary past it) sits between them", gradientIdx !== -1 && recentJobsHeadingIdx !== -1 && footerIdx !== -1 && gradientIdx < recentJobsHeadingIdx && recentJobsHeadingIdx < footerIdx);
+  check("the search form now sits INSIDE the sage two-column area (moved out of its old standalone shell above it)", formIdx !== -1 && sageBoxIdx !== -1 && formIdx > sageBoxIdx);
+  check("the search form comes BEFORE the gradient career card in DOM order — it's the first element of the LEFT column, not the row-sibling of Recent Jobs", formIdx !== -1 && gradientIdx !== -1 && formIdx < gradientIdx);
+  check("the intro gradient card lives INSIDE the sage box, i.e. it is paired with Recent Jobs as the LEFT column's second element", sageBoxIdx !== -1 && gradientIdx !== -1 && sageBoxIdx < gradientIdx);
+  check("the search form, the intro card, and the Recent Jobs heading all stay within the same sage two-column area — no Footer (or any section boundary past it) sits between them", formIdx !== -1 && recentJobsHeadingIdx !== -1 && footerIdx !== -1 && formIdx < recentJobsHeadingIdx && recentJobsHeadingIdx < footerIdx);
   check("the search form is still a real <form> wired to the unchanged handleHeroSearch handler", /component="form"[\s\S]{0,40}onSubmit=\{handleHeroSearch\}/.test(HOME_JSX));
-  check("the search form still floats as a white/off-white card (background.paper) — not the green gradient itself", /bgcolor:\s*"background\.paper"[\s\S]{0,150}p:\s*2,/.test(HOME_JSX));
-  check("the sage box's two-column row starts with the gradient card, and the Recent Jobs heading follows it (not a search form)", sageBoxIdx !== -1 && recentJobsHeadingIdx !== -1 && HOME_JSX.indexOf('component="form"', sageBoxIdx) === -1);
-  check("'Why Choose Us' still reads from background.paper (a white card), now stacked in the left column instead of its own standalone full-width tier", /bgcolor:\s*"background\.paper"/.test(HOME_JSX));
+  check("no separate full-bleed white search shell remains above the sage section (the old Container maxWidth=\"md\" band is gone; the search now renders on the sage background as part of the left column)", !/Container maxWidth="md"/.test(HOME_JSX));
+  check("the sage box's two-column row starts with the search form, followed by the gradient card and Why Choose Us in the LEFT column, with Recent Jobs as its RIGHT-column sibling", sageBoxIdx !== -1 && recentJobsHeadingIdx !== -1 && formIdx > sageBoxIdx && formIdx < gradientIdx && gradientIdx < recentJobsHeadingIdx);
+  check("'Why Choose Us' still reads from background.paper (a white card), stacked beneath the intro card in the same left column", /bgcolor:\s*"background\.paper"/.test(HOME_JSX));
   check("the search placeholder text and validation wiring are untouched by the layout changes", /placeholder="e\.g\. React Developer"/.test(HOME_JSX) && /onSubmit=\{handleHeroSearch\}/.test(HOME_JSX));
 }
 
 // ---------------------------------------------------------------------------
 // A later visual-polish pass deliberately left-aligned "Recent Jobs" (to
 // align with the left edge of the job grid beneath it, in the right/main
-// column) instead of centering it across that column — this section is
-// updated in place for that intentional change (same convention as the
-// other revisions above): the heading is now align="left" and the accent
-// bar drops its mx: "auto" so it sits under the heading's left edge rather
-// than centered.
-console.log("\n[14b] 2G-7C (revised): the LEFT-aligned 'Recent Jobs' heading has a very subtle green accent/underline beneath it — a small, restrained addition, not a colorful decoration");
+// column) instead of centering it across that column. A still later pass
+// removed the short accent-bar underline that used to sit beneath it
+// entirely (heading text/color/alignment/typography untouched) and pulled
+// the heading's own mb in slightly, so the job grid now sits closer to the
+// heading than it used to. Updated in place for both intentional changes
+// (same convention as the other revisions above).
+console.log("\n[14b] The LEFT-aligned 'Recent Jobs' heading no longer has an accent-bar underline beneath it, and sits closer to the job grid than before");
 {
   const headingTagIdx = HOME_JSX.indexOf('variant="h5" fontWeight={700} color="secondary.main" align="left"');
-  check("the 'Recent Jobs' heading is left-aligned (align=\"left\", intentionally changed from centered)", headingTagIdx !== -1);
-  const afterHeading = HOME_JSX.slice(headingTagIdx, headingTagIdx + 700);
-  check("a short, thin accent bar (not a full-width rule) sits directly beneath the heading, reusing the existing primary.main token", /width:\s*56,\s*height:\s*3,\s*bgcolor:\s*"primary\.main"/.test(afterHeading));
-  check("the accent bar no longer centers itself (no mx: \"auto\") — it sits naturally under the heading's left edge instead", !/mx:\s*"auto"/.test(afterHeading.slice(0, afterHeading.indexOf("width: 56") + 120)));
+  check("the 'Recent Jobs' heading is left-aligned (align=\"left\")", headingTagIdx !== -1);
+  const headingLineEnd = HOME_JSX.indexOf("\n", headingTagIdx);
+  const headingTag = HOME_JSX.slice(headingTagIdx, headingLineEnd);
+  check("the heading's own bottom margin was reduced (mb: 1, was 1.5) now that it's the only spacer before the job grid", /mb:\s*1\s*,/.test(headingTag));
+  const sageBoxIdx2 = HOME_JSX.indexOf('bgcolor: "background.sage"');
+  const recentJobsHeadingIdx2 = HOME_JSX.indexOf("Recent Jobs", sageBoxIdx2);
+  const gridIdx = HOME_JSX.indexOf("Grid container", recentJobsHeadingIdx2);
+  const betweenHeadingAndGrid = HOME_JSX.slice(recentJobsHeadingIdx2, gridIdx);
+  check("no accent-bar underline Box (the old width:56/height:3/bgcolor:\"primary.main\" bar) remains between the heading and the job grid", !/width:\s*56,\s*height:\s*3,\s*bgcolor:\s*"primary\.main"/.test(betweenHeadingAndGrid));
+  check("the heading text/color itself is unchanged", /Recent Jobs/.test(HOME_JSX) && /color="secondary\.main"/.test(headingTag));
 }
 
 // ---------------------------------------------------------------------------
@@ -344,16 +365,16 @@ console.log("\n[15] Navbar shows genuine tonal range across its own elements/sta
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n[15b] 2G-7C button hierarchy: Sign Up (deep filled), Search (medium filled), View Details (quieter OUTLINED) are three genuinely different treatments, not three shades of the same fill");
+console.log("\n[15b] Button hierarchy: Sign Up (deep filled green), Search (medium filled green), View Details (light teal filled), Save/Unsave (light amber filled) — four genuinely different treatments. View Details/Save were revised from outlined to a tonal/filled treatment in a later visual-correction pass (exact reference hex values, per that pass's explicit instruction not to leave them outlined) — Sign Up/Search are unaffected and unchanged.");
 {
-  check("Search (Home.jsx's hero button) still resolves to MUI's plain color=\"primary\" (the medium $primary-color) — no change was needed there, since Sign Up moving deeper already creates the contrast", /Button type="submit" variant="contained" color="primary"/.test(HOME_JSX));
-  check("View Details is now a clean OUTLINED treatment (a colored border, not a filled background) — a bare $surface-color background with a $secondary-color border/text", /\.view-details-btn\s*\{\s*background:\s*\$surface-color;\s*color:\s*\$secondary-color;\s*border:\s*1\.5px solid \$secondary-color;/.test(JOBCARD_SCSS));
-  check("View Details' outline is a distinct color from the Save button's neutral $border-color outline right beside it — the two outlined controls remain distinguishable from each other, not just from the filled CTAs", /\.save-btn\s*\{\s*background:\s*\$surface-color;\s*color:\s*\$primary-color;\s*border:\s*1\.4px solid \$border-color;/.test(JOBCARD_SCSS));
-  check("View Details, Sign Up, and Search all resolve to 3 different literal tokens (outlined $secondary-color vs. filled $primary-hover vs. filled MUI primary.main/$primary-color) — genuinely distinct, not coincidentally the same value under different names", new Set(["secondary-color", "primary-hover", "primary-color"]).size === 3);
+  check("Search (Home.jsx's hero button) still resolves to MUI's plain color=\"primary\" (the medium $primary-color) — unchanged", /Button type="submit" variant="contained" color="primary"/.test(HOME_JSX));
+  check("View Details is a light teal filled/tonal treatment, no border — background #f0fdfa, text #115e59", /\.view-details-btn\s*\{[^}]*background:\s*#f0fdfa;[^}]*color:\s*#115e59;[^}]*border:\s*none;/.test(JOBCARD_SCSS));
+  check("Save/Unsave is a light amber filled/tonal treatment, no border — background #fffbeb, text #92400e — genuinely distinct from View Details' teal, not the same fill under a different name", /\.save-btn\s*\{[^}]*background:\s*#fffbeb;[^}]*color:\s*#92400e;[^}]*border:\s*none;/.test(JOBCARD_SCSS));
+  check("View Details, Save/Unsave, Sign Up, and Search resolve to 4 different color families (teal / amber / deep green / medium green) — genuinely distinct, not coincidentally the same value", new Set(["#f0fdfa", "#fffbeb", "primary-hover", "primary-color"]).size === 4);
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n[16] Job Detail's badges now mirror JobCard's semantic accent tokens exactly (item 8's Job Detail consistency check) — the same meaning gets the same color everywhere, not a page-specific palette");
+console.log("\n[16] Job Detail's badges still read from the shared $badge-* tokens, untouched — a later visual-correction pass deliberately moved JobCard's own badges to exact reference hex values instead (JobCard-only in scope, Job Detail explicitly excluded), so the two no longer share literal color values; both still use the same tone-mapping helper and the same 4 semantic categories");
 {
   check("Job Detail imports the same getExperienceBadgeTone helper JobCard uses (reused, not reimplemented)", /getExperienceBadgeTone/.test(JOBDETAIL_JSX));
   check("Job Detail's experience badge class is tone-suffixed the same way JobCard's is", /badge-experience--\$\{experienceTone\}/.test(JOBDETAIL_JSX));
@@ -364,8 +385,11 @@ console.log("\n[16] Job Detail's badges now mirror JobCard's semantic accent tok
     [".badge-experience--senior", "\\$badge-lavender-bg", "\\$badge-lavender-text"],
   ]) {
     const re = new RegExp(`${selector.replace(".", "\\.")}\\s*\\{\\s*background:\\s*${bgToken};\\s*color:\\s*${textToken};`);
-    check(`Job Detail's ${selector} uses the exact same token pair as JobCard's`, re.test(JOBDETAIL_SCSS) && re.test(JOBCARD_SCSS));
+    check(`Job Detail's ${selector} still uses the shared $badge-* token pair (untouched by the JobCard-only visual correction)`, re.test(JOBDETAIL_SCSS));
   }
+  // JobCard's own badge colors are verified separately in
+  // testJobCardTheme.js (now exact reference hex values, not these
+  // tokens) — not re-checked here to avoid duplicating that coverage.
 }
 
 // ---------------------------------------------------------------------------
