@@ -143,7 +143,22 @@ console.log("\n[8] Home.jsx wiring — View More requests the next real backend 
   check("handleViewMore calls listJobs with that next page and the same page size", /listJobs\(\{\s*page: nextPage,\s*limit: HOMEPAGE_PAGE_SIZE,?\s*\}\)/.test(home));
   check("new jobs are merged through mergeUniqueJobs (no duplicates) and capped through capJobsForGuest (no guest overrun)", /capJobsForGuest\(mergeUniqueJobs\(prev, fetchedJobs\), isAuthenticated\)/.test(home));
   check("the View More button itself is only rendered when canLoadMoreHomepageJobs says so (never shown past the cap/last page)", /\{canLoadMore &&/.test(home));
-  check("clicking is also guarded at the handler level against firing while already in flight or when not allowed", /if \(loadingMore \|\| !canLoadMore\) return;/.test(home));
+  // Updated in place (same "revise the check, don't weaken it" convention
+  // section [1] above already established): the guard is now a `useRef`
+  // checked/set synchronously, not the `loadingMore` state read — a state
+  // read can't protect against a second invocation that starts before
+  // React has committed the re-render that would have made `loadingMore`
+  // true, which is exactly the race a production-readiness audit flagged.
+  check("clicking is guarded by a synchronous ref (not just state), so a second rapid invocation sees it already set and never dispatches a second request (item A)", /const isFetchingMoreRef = useRef\(false\);/.test(home) && /if \(isFetchingMoreRef\.current \|\| !canLoadMore\) return;/.test(home));
+  check("the ref is set to true synchronously, before listJobs is ever called — not after an await", (() => {
+    const handlerMatch = home.match(/const handleViewMore = async \(\) => \{[\s\S]*?\n {2}\};/);
+    if (!handlerMatch) return false;
+    const body = handlerMatch[0];
+    const guardIdx = body.indexOf("isFetchingMoreRef.current = true;");
+    const dispatchIdx = body.indexOf("await listJobs(");
+    return guardIdx !== -1 && dispatchIdx !== -1 && guardIdx < dispatchIdx;
+  })());
+  check("the ref is reset in a finally block, so a later click after completion/failure is never permanently blocked", /finally \{\s*setLoadingMore\(false\);\s*isFetchingMoreRef\.current = false;\s*\}/.test(home));
   check("isAuthenticated is read from the existing AuthContext via useAuth(), not reimplemented", /const \{ isAuthenticated \} = useAuth\(\);/.test(home));
 }
 
@@ -154,6 +169,32 @@ console.log("\n[9] Home.jsx wiring — loading/error/empty states are all handle
   check("a loading state is shown", /status === "loading"/.test(home) && /Loading jobs/.test(home));
   check("an error state is shown with role=\"alert\"", /loadError &&[\s\S]{0,80}role="alert"/.test(home));
   check("an honest empty state (zero jobs, no error) is distinguished from the error state", /jobs\.length === 0 && !loadError/.test(home));
+}
+
+// ---------------------------------------------------------------------------
+// Production-readiness audit follow-up: a failed "View More" must never
+// look like — or behave like — a failed initial load. These are
+// deterministic structural checks against Home.jsx's own source (this
+// project has no React renderer/jsdom in its test setup — see every other
+// Home.jsx check above, all of which use the same static-source approach),
+// proving the handler's shape guarantees the required behavior rather than
+// exercising it through an actual render.
+console.log("\n[10] Home.jsx wiring — a failed View More preserves the existing job list and never advances pagination (items C, D)");
+{
+  const home = readSource("pages/Home.jsx");
+  const handlerMatch = home.match(/const handleViewMore = async \(\) => \{[\s\S]*?\n {2}\};/);
+  const handlerBody = handlerMatch ? handlerMatch[0] : "";
+  const tryMatch = handlerBody.match(/try \{([\s\S]*?)\}\s*catch/);
+  const catchMatch = handlerBody.match(/catch \(err\) \{([\s\S]*?)\}\s*finally/);
+  const tryBody = tryMatch ? tryMatch[1] : "";
+  const catchBody = catchMatch ? catchMatch[1] : "";
+
+  check("View More has its own error state, separate from the initial-load loadError", /const \[viewMoreError, setViewMoreError\] = useState\(null\);/.test(home));
+  check("a View More failure sets viewMoreError, never loadError", /setViewMoreError\(err\.message \|\| "Failed to load more jobs\."\);/.test(catchBody) && !/setLoadError/.test(catchBody));
+  check("setJobs is only called on the success path — a failed request never touches (or clears) the already-loaded job list", /setJobs\(/.test(tryBody) && !/setJobs\(/.test(catchBody));
+  check("setPage is only called on the success path — a failed request never advances the page number, so a retry requests the correct next page", /setPage\(nextPage\)/.test(tryBody) && !/setPage\(/.test(catchBody));
+  check("the View More error is rendered near the button, not in place of the job grid (the grid's own condition is untouched)", /\{jobs\.length > 0 && \(/.test(home) && /\{viewMoreError && \(/.test(home));
+  check("the View More button itself is not hidden by a view-more error — canLoadMore (unrelated to viewMoreError) still controls it, so the user can retry", /\{canLoadMore && \(/.test(home));
 }
 
 console.log("\n============================");

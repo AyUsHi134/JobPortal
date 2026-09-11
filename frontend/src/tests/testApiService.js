@@ -57,12 +57,12 @@ function mockSuccessAdapter({ status = 200, data = {} } = {}, captureConfig) {
   };
 }
 
-function mockFailureAdapter({ status, data } = {}) {
+function mockFailureAdapter({ status, data, headers = {} } = {}) {
   return async (config) => {
     const error = new Error("Request failed");
     error.isAxiosError = true;
     error.config = config;
-    error.response = { status, data, headers: {}, config };
+    error.response = { status, data, headers, config };
     throw error;
   };
 }
@@ -253,6 +253,61 @@ console.log("\n[9] Error `details` array (validation errors) is preserved when p
     thrown = err;
   }
   check("details array is preserved", Array.isArray(thrown.details) && thrown.details[0] === "Path `title` is required.");
+}
+
+// ---------------------------------------------------------------------------
+// Production-readiness audit follow-up: express-rate-limit's default 429
+// body is plain TEXT (`response.send(message)`), not JSON — so
+// extractMessage's own typeof-object check previously always fell through
+// to the generic "Something went wrong" message for a rate limit, giving
+// no indication of what actually happened. normalizeError now special-
+// cases 429 with its own message, reading `Retry-After` when the backend
+// sends it (both real limiters set it via `standardHeaders: true`).
+console.log("\n[10] A 429 (rate limited) response gets a specific, non-generic message — status and Retry-After are read, no retry is attempted automatically");
+{
+  // express-rate-limit's actual real-world shape: a plain-text body, a
+  // numeric-seconds Retry-After header.
+  apiClient.defaults.adapter = mockFailureAdapter({
+    status: 429,
+    data: "Too many requests, please try again later.",
+    headers: { "retry-after": "42" },
+  });
+  let thrown = null;
+  try {
+    await apiClient.get("/api/jobs");
+  } catch (err) {
+    thrown = err;
+  }
+  check("the request rejected with an ApiError", thrown instanceof ApiError);
+  check("the ApiError carries the 429 status (never hidden)", thrown.status === 429);
+  check("the message is specific to rate limiting, not the generic fallback", thrown.message !== "Something went wrong. Please try again.");
+  check("the message includes the real Retry-After wait time", thrown.message.includes("42"));
+  check("no `retryAfter`/extra field was added to the error's own enumerable shape — {name, status, details} stays exact, same as every other error", Object.keys(thrown).sort().join(",") === "details,name,status");
+
+  // No Retry-After header at all: still a specific, honest message — never
+  // silently falls back to the unhelpful generic one, and never fabricates
+  // a wait time it wasn't told.
+  apiClient.defaults.adapter = mockFailureAdapter({ status: 429, data: "Too many requests, please try again later.", headers: {} });
+  let thrownNoHeader = null;
+  try {
+    await apiClient.get("/api/jobs");
+  } catch (err) {
+    thrownNoHeader = err;
+  }
+  check("without a Retry-After header, the message is still rate-limit-specific (not generic, not fabricated)", thrownNoHeader.message !== "Something went wrong. Please try again." && !/NaN/.test(thrownNoHeader.message));
+
+  // A hypothetical future/other endpoint's own JSON-bodied 429 (this app's
+  // limiters don't currently send one, but the fix is deliberately kept
+  // generic enough to respect a real backend message when present, per the
+  // same extractMessage convention every other status already follows).
+  apiClient.defaults.adapter = mockFailureAdapter({ status: 429, data: { error: "Slow down, friend." }, headers: { "retry-after": "5" } });
+  let thrownJsonBody = null;
+  try {
+    await apiClient.get("/api/jobs");
+  } catch (err) {
+    thrownJsonBody = err;
+  }
+  check("a real backend-supplied JSON message on a 429 is still preferred over the generic rate-limit copy", thrownJsonBody.message === "Slow down, friend.");
 }
 
 console.log("\n============================");

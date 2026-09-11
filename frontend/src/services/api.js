@@ -101,16 +101,55 @@ export class ApiError extends Error {
 
 const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
 const NETWORK_ERROR_MESSAGE = "Could not reach the server. Please check your connection and try again.";
+const RATE_LIMITED_MESSAGE = "Too many requests — please wait a moment and try again.";
 
 function extractMessage(data) {
   if (!data || typeof data !== "object") return GENERIC_ERROR_MESSAGE;
   return data.error || data.msg || data.message || GENERIC_ERROR_MESSAGE;
 }
 
+// `Retry-After` (RFC 9110 §10.2.3) is a plain integer number of seconds on
+// a 429 — express-rate-limit sets it via its own `standardHeaders` option
+// (confirmed present on both backend limiters). Returns null when the
+// header is absent or not a valid non-negative number, so callers always
+// have a safe fallback rather than needing to guard against NaN/undefined.
+function parseRetryAfterSeconds(headers) {
+  const raw = headers?.["retry-after"];
+  if (raw === undefined || raw === null) return null;
+  const seconds = Number(raw);
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+}
+
+// A 429's body is plain text by default (express-rate-limit's own
+// `response.send(message)`, not JSON) — `extractMessage`'s own
+// typeof-object check already falls back to the generic message for that
+// case, which is exactly what previously surfaced as an unhelpful
+// "Something went wrong" for a rate limit. This still prefers a real
+// backend-supplied JSON message when one is present (so a future/other
+// endpoint's own structured 429 body still works via the same three
+// error-key conventions this file already normalizes), and only falls
+// back to a rate-limit-specific message — with the actual wait time when
+// known — when the body isn't a useful object.
+function buildRateLimitMessage(data, retryAfterSeconds) {
+  if (data && typeof data === "object") {
+    const backendMessage = data.error || data.msg || data.message;
+    if (backendMessage) return backendMessage;
+  }
+  if (retryAfterSeconds !== null) {
+    const unit = retryAfterSeconds === 1 ? "second" : "seconds";
+    return `Too many requests — please try again in ${retryAfterSeconds} ${unit}.`;
+  }
+  return RATE_LIMITED_MESSAGE;
+}
+
 function normalizeError(error) {
   if (error.response) {
-    const { status, data } = error.response;
+    const { status, data, headers } = error.response;
     const details = Array.isArray(data?.details) ? data.details : null;
+    if (status === 429) {
+      const retryAfterSeconds = parseRetryAfterSeconds(headers);
+      return new ApiError(buildRateLimitMessage(data, retryAfterSeconds), { status, details });
+    }
     return new ApiError(extractMessage(data), { status, details });
   }
   if (error.request) {

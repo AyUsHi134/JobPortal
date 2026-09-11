@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Box, Container, Typography, Button, TextField, Grid, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate, Link } from "react-router-dom";
@@ -10,7 +10,6 @@ import { useAuth } from "../hooks/useAuth.js";
 import { validateSearchQuery, buildJobSearchPath } from "../utils/homepageSearch.js";
 import {
   HOMEPAGE_PAGE_SIZE,
-  GUEST_JOB_LIMIT,
   mergeUniqueJobs,
   capJobsForGuest,
   canLoadMoreHomepageJobs,
@@ -34,9 +33,26 @@ export default function Home() {
   const [status, setStatus] = useState("loading"); // loading | success | error
   const [loadError, setLoadError] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Separate from `loadError` (the initial-load failure) — a failed "View
+  // More" must never replace the already-loaded job grid with the
+  // initial-load error state; it gets its own scoped message near the
+  // button instead, and the existing cards stay exactly as they were.
+  const [viewMoreError, setViewMoreError] = useState(null);
 
   const [searchText, setSearchText] = useState("");
   const [searchError, setSearchError] = useState(null);
+
+  // Guards the initial fetch below against React.StrictMode's dev-only
+  // mount -> cleanup -> mount double-invoke: a ref (unlike a plain
+  // closure variable) survives that synthetic remount, so the second
+  // invocation sees it already set and skips re-dispatching. A cleanup-
+  // based `cancelled` flag can't coexist with this guard: StrictMode
+  // still runs the first invocation's cleanup as part of that same
+  // synthetic cycle, which would mark the one real in-flight request
+  // (started by that first invocation) cancelled before its response
+  // ever arrives. Safe to omit that guard in React 18 — calling a state
+  // setter after a genuine unmount is a silent no-op, not a warning/crash.
+  const hasFetchedInitialJobs = useRef(false);
 
   // Initial "Recent Jobs" page — a short teaser via real server-side
   // pagination (page 1, a sensible small limit), never a bare-array
@@ -45,33 +61,41 @@ export default function Home() {
   // (FindJob.jsx, Phase 2C) — this section's job is just a browsable
   // preview.
   useEffect(() => {
-    let cancelled = false;
+    if (hasFetchedInitialJobs.current) return;
+    hasFetchedInitialJobs.current = true;
+
     setStatus("loading");
     listJobs({ page: 1, limit: HOMEPAGE_PAGE_SIZE })
       .then(({ jobs: fetchedJobs, pagination: fetchedPagination }) => {
-        if (cancelled) return;
         setJobs(fetchedJobs);
         setPagination(fetchedPagination);
         setPage(1);
         setStatus("success");
       })
       .catch((err) => {
-        if (cancelled) return;
         setLoadError(err.message || "Failed to load jobs.");
         setStatus("error");
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const canLoadMore = canLoadMoreHomepageJobs({ jobsCount: jobs.length, pagination, isAuthenticated });
   const showGuestSignupCta = shouldShowGuestSignupCta({ jobsCount: jobs.length, pagination, isAuthenticated });
 
+  // Synchronous re-entrancy guard: `isFetchingMoreRef` is checked AND set
+  // before `listJobs` is ever called, so a second invocation that starts
+  // while the first is still in flight (e.g. a fast repeated click, before
+  // React has re-rendered with `loadingMore: true` and disabled the
+  // button) sees it already `true` and returns immediately — no second
+  // request is ever dispatched. `loadingMore` state is kept as-is for the
+  // UI (disabling the button, swapping its label); the ref is the actual
+  // dispatch guard, not the state.
+  const isFetchingMoreRef = useRef(false);
+
   const handleViewMore = async () => {
-    if (loadingMore || !canLoadMore) return;
+    if (isFetchingMoreRef.current || !canLoadMore) return;
+    isFetchingMoreRef.current = true;
     setLoadingMore(true);
-    setLoadError(null);
+    setViewMoreError(null);
     const nextPage = page + 1;
     try {
       const { jobs: fetchedJobs, pagination: fetchedPagination } = await listJobs({
@@ -82,9 +106,14 @@ export default function Home() {
       setPagination(fetchedPagination);
       setPage(nextPage);
     } catch (err) {
-      setLoadError(err.message || "Failed to load more jobs.");
+      // Scoped to `viewMoreError`, never `loadError` — the already-loaded
+      // `jobs`/`page` are deliberately left untouched here, so the existing
+      // grid stays visible and a retry (clicking View More again) requests
+      // the correct next page rather than skipping or repeating one.
+      setViewMoreError(err.message || "Failed to load more jobs.");
     } finally {
       setLoadingMore(false);
+      isFetchingMoreRef.current = false;
     }
   };
 
@@ -416,6 +445,12 @@ export default function Home() {
                 </Grid>
               )}
 
+              {viewMoreError && (
+                <Typography align="center" color="error" role="alert" sx={{ mt: 3 }}>
+                  {viewMoreError}
+                </Typography>
+              )}
+
               {canLoadMore && (
                 <Box display="flex" justifyContent="center" mt={4}>
                   <Button
@@ -448,7 +483,7 @@ export default function Home() {
                     Want to explore more jobs?
                   </Typography>
                   <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
-                    Create a free account to continue browsing beyond the first {GUEST_JOB_LIMIT} jobs.
+                    Create a free account to keep browsing — and save the jobs you like along the way.
                   </Typography>
                   <Button component={Link} to="/signup" variant="contained" color="primary" sx={{ fontWeight: 700 }}>
                     Sign Up
