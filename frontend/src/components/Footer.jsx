@@ -5,12 +5,14 @@ import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import "./Footer.scss";
 
-// Isolated on purpose, per this phase's explicit instruction not to invent
-// real destinations — "#" is a safe no-op placeholder, never a fabricated
-// real URL. Swap these two values for the project's real GitHub/LinkedIn
-// URLs whenever they're known; nothing else in this file needs to change.
+// github: the project's own real repository, read from `git remote get-url
+// origin` (https://github.com/AyUsHi134/JobPortal.git) — not invented.
+// linkedin: no real URL exists anywhere in the project (no such reference
+// in any file, package.json field, or git config), so per this phase's
+// explicit "don't invent real destinations" instruction it stays "#" — a
+// safe no-op placeholder — until a real one is supplied.
 const SOCIAL_LINKS = {
-  github: "#",
+  github: "https://github.com/AyUsHi134/JobPortal",
   linkedin: "#",
 };
 

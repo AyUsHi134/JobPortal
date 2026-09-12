@@ -318,12 +318,17 @@ console.log("\n[14] Search now sits INSIDE the sage two-column area as the first
   const sageBoxIdx = HOME_JSX.indexOf('bgcolor: "background.sage"');
   const gradientIdx = HOME_JSX.indexOf("linear-gradient(115deg");
   const recentJobsHeadingIdx = HOME_JSX.indexOf("Recent Jobs", sageBoxIdx);
-  const footerIdx = HOME_JSX.indexOf("<Footer");
 
   check("the search form now sits INSIDE the sage two-column area (moved out of its old standalone shell above it)", formIdx !== -1 && sageBoxIdx !== -1 && formIdx > sageBoxIdx);
   check("the search form comes BEFORE the gradient career card in DOM order — it's the first element of the LEFT column, not the row-sibling of Recent Jobs", formIdx !== -1 && gradientIdx !== -1 && formIdx < gradientIdx);
   check("the intro gradient card lives INSIDE the sage box, i.e. it is paired with Recent Jobs as the LEFT column's second element", sageBoxIdx !== -1 && gradientIdx !== -1 && sageBoxIdx < gradientIdx);
-  check("the search form, the intro card, and the Recent Jobs heading all stay within the same sage two-column area — no Footer (or any section boundary past it) sits between them", formIdx !== -1 && recentJobsHeadingIdx !== -1 && footerIdx !== -1 && formIdx < recentJobsHeadingIdx && recentJobsHeadingIdx < footerIdx);
+  // Footer is a single global instance rendered once by App.jsx, below
+  // <Routes> — Home.jsx has never rendered its own <Footer>, so it can
+  // never land between these sections by construction. Updated from a
+  // stale check that looked for `<Footer` inside Home.jsx's own source
+  // (always -1, since Home.jsx isn't where Footer lives) to instead
+  // confirm that non-duplication directly.
+  check("Home.jsx renders no <Footer> of its own — it's a single global instance in App.jsx, so it structurally can't ever sit between Home's own sections", formIdx !== -1 && recentJobsHeadingIdx !== -1 && formIdx < recentJobsHeadingIdx && !/<Footer/.test(HOME_JSX));
   check("the search form is still a real <form> wired to the unchanged handleHeroSearch handler", /component="form"[\s\S]{0,40}onSubmit=\{handleHeroSearch\}/.test(HOME_JSX));
   check("no separate full-bleed white search shell remains above the sage section (the old Container maxWidth=\"md\" band is gone; the search now renders on the sage background as part of the left column)", !/Container maxWidth="md"/.test(HOME_JSX));
   check("the sage box's two-column row starts with the search form, followed by the gradient card and Why Choose Us in the LEFT column, with Recent Jobs as its RIGHT-column sibling", sageBoxIdx !== -1 && recentJobsHeadingIdx !== -1 && formIdx > sageBoxIdx && formIdx < gradientIdx && gradientIdx < recentJobsHeadingIdx);

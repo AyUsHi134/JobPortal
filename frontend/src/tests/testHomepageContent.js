@@ -97,13 +97,46 @@ console.log("\n[5] The green theme now reaches the homepage's supporting content
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n[5b] Footer.jsx's gradient background is the EXACT same formula/tokens as Home.jsx's Career card — no new color or gradient was introduced");
+// Updated in place: Footer's gradient no longer lives inline in Footer.jsx
+// as a MUI `sx` expression (the architecture this check originally
+// verified) — it was moved to Footer.scss as a plain CSS gradient using
+// the app's shared Sass tokens instead. The formula/angle/stops
+// requirement this check exists for is unchanged; only where the gradient
+// is expressed changed. Verified two ways: the SCSS expression itself
+// (same 115deg angle, same 0%/40%/100% stops, three tokens in the same
+// role-order), and — since a Sass token name alone doesn't prove color
+// equivalence — that each Sass token resolves to the exact same hex value
+// as the MUI theme token it stands in for, so this isn't just a
+// similarly-shaped but differently-colored gradient.
+console.log("\n[5b] Footer.scss's gradient background is the EXACT same formula/tokens as Home.jsx's Career card — no new color or gradient was introduced, just expressed via the shared Sass tokens instead of inline MUI sx");
 {
-  const footer = readSource("components/Footer.jsx");
-  const GRADIENT_EXPR = "`linear-gradient(115deg, ${theme.palette.primary.deep} 0%, ${theme.palette.primary.main} 40%, ${theme.palette.oliveAccent} 100%)`";
-  check("Home.jsx's Career card uses this exact gradient expression", HOME.includes(GRADIENT_EXPR));
-  check("Footer.jsx uses the byte-identical gradient expression — same tokens, same angle, same stops", footer.includes(GRADIENT_EXPR));
-  check("Footer.jsx's old flat bgcolor:\"primary.main\" bar is gone (replaced by the gradient, not layered underneath it)", !/bgcolor:\s*"primary\.main"/.test(footer));
+  const footerScss = readSource("components/Footer.scss");
+  const variablesScss = readSource("styles/_variables.scss");
+  const themeJs = readSource("theme.js");
+
+  const MUI_GRADIENT_EXPR = "`linear-gradient(115deg, ${theme.palette.primary.deep} 0%, ${theme.palette.primary.main} 40%, ${theme.palette.oliveAccent} 100%)`";
+  check("Home.jsx's Career card uses this exact MUI gradient expression", HOME.includes(MUI_GRADIENT_EXPR));
+
+  const SCSS_GRADIENT_EXPR = "linear-gradient(115deg, $primary-deep 0%, $primary-color 40%, $olive-accent 100%)";
+  check("Footer.scss's dark bar uses the equivalent Sass gradient — same angle, same stops, same token role-order (deep -> mid -> olive)", footerScss.includes(SCSS_GRADIENT_EXPR));
+
+  function hexOf(source, pattern) {
+    const match = source.match(pattern);
+    return match ? match[1].toLowerCase() : null;
+  }
+  const sassDeep = hexOf(variablesScss, /\$primary-deep:\s*(#[0-9a-fA-F]{6})/);
+  const sassMain = hexOf(variablesScss, /\$primary-color:\s*(#[0-9a-fA-F]{6})/);
+  const sassOlive = hexOf(variablesScss, /\$olive-accent:\s*(#[0-9a-fA-F]{6})/);
+  const muiDeep = hexOf(themeJs, /deep:\s*"(#[0-9a-fA-F]{6})"/);
+  const muiMain = hexOf(themeJs, /primary:\s*\{\s*main:\s*"(#[0-9a-fA-F]{6})"/);
+  const muiOlive = hexOf(themeJs, /oliveAccent:\s*"(#[0-9a-fA-F]{6})"/);
+  check(
+    "the Sass tokens Footer.scss's gradient uses resolve to the exact same hex values as the MUI theme tokens Home.jsx's gradient uses — genuinely the same colors, not just similarly-named tokens",
+    sassDeep && sassMain && sassOlive && sassDeep === muiDeep && sassMain === muiMain && sassOlive === muiOlive
+  );
+
+  const footerJsx = readSource("components/Footer.jsx");
+  check("Footer.jsx's old flat bgcolor:\"primary.main\" bar is gone (replaced by the gradient, not layered underneath it)", !/bgcolor:\s*"primary\.main"/.test(footerJsx));
 }
 
 // ---------------------------------------------------------------------------

@@ -6,6 +6,11 @@ html {
   // horizontal scroll — a safety net alongside the per-component overflow
   // fixes in this phase, not a replacement for them.
   overflow-x: hidden;
+  // A height baseline for the flex-column sticky-footer layout below —
+  // without this, `#root`'s own 100% height would resolve against an
+  // auto-height <html>/<body> and collapse to its content size instead of
+  // the viewport.
+  height: 100%;
 }
 
 body {
@@ -13,6 +18,30 @@ body {
   color: $text-dark;
   font-family: $font-main;
   line-height: 1.55;
+  height: 100%;
+}
+
+// Keeps the Footer at the bottom of the viewport on short-content pages
+// (e.g. Contact, ForgotPassword) without `position: fixed`/`sticky` — a
+// fixed/sticky footer would overlap page content instead of sitting after
+// it. `#root` (App.jsx's `.app-shell` is its only child) is a flex column
+// spanning at least the full viewport height; `.app-main` (the `<Routes>`
+// wrapper) is the one flexible child, so it grows to fill any leftover
+// space and pushes the Footer down to the bottom edge on a short page,
+// while a tall page simply grows past 100vh and scrolls normally, exactly
+// as it already did.
+#root {
+  height: 100%;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1 0 auto;
 }
 
 h1, h2, h3, h4, h5 {

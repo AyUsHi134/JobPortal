@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext.jsx"; 
+import { Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext.jsx";
 
 import Navbar from "./components/Navbar/Navbar";
 import Footer from "./components/Footer";
@@ -34,10 +34,22 @@ import SavedJobs from "./pages/SavedJobs/SavedJobs.jsx";
 // but which had no matching route (FRONTEND_AUDIT.md §2 — a confirmed
 // dead link before this phase).
 
-export default function App() {
+// The global Footer is suppressed only on these single-purpose auth
+// funnels (Login/Signup/ForgotPassword) — its Quick Links/newsletter/
+// social content has nothing to do with completing a login/signup/
+// password-recovery form and would only compete with that one action.
+// Every other route (including the protected Profile/AddJob/SavedJobs
+// pages, which are ordinary in-app browsing, not funnels) keeps it.
+const HIDE_FOOTER_PATHS = ["/login", "/signup", "/forgot-password"];
+
+function AppLayout() {
+  const location = useLocation();
+  const showFooter = !HIDE_FOOTER_PATHS.includes(location.pathname);
+
   return (
-    <AuthProvider>
-        <Navbar />
+    <div className="app-shell">
+      <Navbar />
+      <main className="app-main">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -51,7 +63,16 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/job/:id" element={<JobDescription />} />
         </Routes>
-        <Footer />
+      </main>
+      {showFooter && <Footer />}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppLayout />
     </AuthProvider>
   );
 }
