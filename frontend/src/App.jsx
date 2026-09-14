@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
@@ -45,6 +45,22 @@ const HIDE_FOOTER_PATHS = ["/login", "/signup", "/forgot-password"];
 function AppLayout() {
   const location = useLocation();
   const showFooter = !HIDE_FOOTER_PATHS.includes(location.pathname);
+
+  // Centralized scroll-to-top on every route change — react-router-dom's
+  // plain <BrowserRouter>/<Routes> (unlike a full page load, and unlike
+  // the separate data-router <ScrollRestoration/> API this app doesn't
+  // use) never touches window scroll position on its own, so without
+  // this every navigation — Navbar links, Footer's Quick Links, JobCard's
+  // navigate() calls, all of them — silently kept whatever scroll offset
+  // the previous page was at. One effect here, keyed on the pathname
+  // (not the full location, so an in-page query-string-only update, e.g.
+  // FindJob's own filter/search navigate() calls, doesn't yank the
+  // scroll position while a user is actively filtering results on the
+  // same page), covers every current and future route/link — no
+  // per-component scroll logic exists or should be added anywhere else.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="app-shell">

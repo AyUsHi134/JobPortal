@@ -485,7 +485,25 @@ export default function Home() {
                   <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
                     Create a free account to keep browsing — and save the jobs you like along the way.
                   </Typography>
-                  <Button component={Link} to="/signup" variant="contained" color="primary" sx={{ fontWeight: 700 }}>
+                  {/* This Button renders as a real <a> (component={Link}), so it
+                      also matches main.scss's global `a:hover { color:
+                      $primary-hover }` rule — and $primary-hover is the exact
+                      same hex as this button's own MUI hover background
+                      (theme.palette.primary.dark), since that global rule has
+                      higher CSS specificity (element+pseudo-class) than MUI's
+                      single generated class for text color, it was winning on
+                      hover and making the white "Sign Up" text repaint the
+                      same color as the background — invisible. Forcing the
+                      hover text color back to white here (scoped to this one
+                      button only) fixes exactly that; normal/rest appearance,
+                      size, position, and every other CTA style are untouched. */}
+                  <Button
+                    component={Link}
+                    to="/signup"
+                    variant="contained"
+                    color="primary"
+                    sx={{ fontWeight: 700, "&:hover": { color: "#fff !important" } }}
+                  >
                     Sign Up
                   </Button>
                 </Box>

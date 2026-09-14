@@ -7,13 +7,10 @@ import "./Footer.scss";
 
 // github: the project's own real repository, read from `git remote get-url
 // origin` (https://github.com/AyUsHi134/JobPortal.git) — not invented.
-// linkedin: no real URL exists anywhere in the project (no such reference
-// in any file, package.json field, or git config), so per this phase's
-// explicit "don't invent real destinations" instruction it stays "#" — a
-// safe no-op placeholder — until a real one is supplied.
+// linkedin: the real profile URL supplied directly by the project owner.
 const SOCIAL_LINKS = {
   github: "https://github.com/AyUsHi134/JobPortal",
-  linkedin: "#",
+  linkedin: "https://www.linkedin.com/in/ayushi-singh-dev/",
 };
 
 // Real, already-registered App.jsx routes only, same as Navbar.jsx's own
