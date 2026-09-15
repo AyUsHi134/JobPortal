@@ -4,6 +4,9 @@ import {
   toDateOrNull,
   salaryValueOrNull,
   looksRemoteFromText,
+  decodeHtmlEntities,
+  repairMojibake,
+  isPlaceholderOrGarbledTitle,
 } from "./normalizationHelpers.js";
 
 /**
@@ -25,11 +28,15 @@ export function normalizeAdzunaJob(rawJob) {
     return fail("Raw Adzuna job is missing or not an object.", rawJob);
   }
 
-  const title = nonEmptyString(rawJob.title);
-  const company = nonEmptyString(rawJob.company && rawJob.company.display_name);
-  const description = nonEmptyString(rawJob.description);
+  const title = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.title)));
+  const company = nonEmptyString(
+    decodeHtmlEntities(repairMojibake(rawJob.company && rawJob.company.display_name))
+  );
+  const description = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.description)));
   const sourceId = nonEmptyString(rawJob.id != null ? String(rawJob.id) : null);
-  const locationDisplay = nonEmptyString(rawJob.location && rawJob.location.display_name);
+  const locationDisplay = nonEmptyString(
+    decodeHtmlEntities(repairMojibake(rawJob.location && rawJob.location.display_name))
+  );
 
   const missing = [];
   if (!title) missing.push("title");
@@ -45,14 +52,18 @@ export function normalizeAdzunaJob(rawJob) {
     );
   }
 
+  if (isPlaceholderOrGarbledTitle(title)) {
+    return fail(`Adzuna raw job title rejected as placeholder/garbled: "${title}".`, rawJob);
+  }
+
   // Confirmed live (ADZUNA_LIVE_TEST.md §6) for India-scoped queries:
   // location.area is [country, state, city]. Not assumed for other
   // countries/queries — just defensively read positionally with a
   // fallback to null for any missing slot.
   const area = rawJob.location && Array.isArray(rawJob.location.area) ? rawJob.location.area : [];
-  const country = nonEmptyString(area[0]);
-  const state = nonEmptyString(area[1]);
-  const city = nonEmptyString(area[2]);
+  const country = nonEmptyString(decodeHtmlEntities(repairMojibake(area[0])));
+  const state = nonEmptyString(decodeHtmlEntities(repairMojibake(area[1])));
+  const city = nonEmptyString(decodeHtmlEntities(repairMojibake(area[2])));
 
   const salaryMin = salaryValueOrNull(rawJob.salary_min);
   const salaryMax = salaryValueOrNull(rawJob.salary_max);

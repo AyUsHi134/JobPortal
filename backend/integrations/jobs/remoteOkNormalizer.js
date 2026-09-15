@@ -4,6 +4,9 @@ import {
   toDateOrNull,
   epochSecondsToDateOrNull,
   salaryValueOrNull,
+  decodeHtmlEntities,
+  repairMojibake,
+  isPlaceholderOrGarbledTitle,
 } from "./normalizationHelpers.js";
 
 /**
@@ -24,15 +27,15 @@ export function normalizeRemoteOKJob(rawJob) {
     return fail("Raw RemoteOK job is missing or not an object.", rawJob);
   }
 
-  const title = nonEmptyString(rawJob.position);
-  const company = nonEmptyString(rawJob.company);
-  const description = nonEmptyString(rawJob.description);
+  const title = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.position)));
+  const company = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.company)));
+  const description = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.description)));
   // Prefer the numeric id; fall back to slug (both confirmed stable per
   // JOB_API_DATA_REPORT.md §3 and JOB_SCHEMA_DESIGN.md §5).
   const sourceId =
     nonEmptyString(rawJob.id != null ? String(rawJob.id) : null) ||
     nonEmptyString(rawJob.slug);
-  const locationRaw = nonEmptyString(rawJob.location);
+  const locationRaw = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.location)));
 
   const missing = [];
   if (!title) missing.push("position");
@@ -46,6 +49,10 @@ export function normalizeRemoteOKJob(rawJob) {
       `RemoteOK raw job is missing required field(s): ${missing.join(", ")}.`,
       rawJob
     );
+  }
+
+  if (isPlaceholderOrGarbledTitle(title)) {
+    return fail(`RemoteOK raw job title rejected as placeholder/garbled: "${title}".`, rawJob);
   }
 
   const tags = Array.isArray(rawJob.tags) ? rawJob.tags.filter((t) => typeof t === "string") : [];
