@@ -3,6 +3,13 @@ import * as jobService from "../services/jobService.js";
 
 const VALID_SORTS = Object.keys(jobService.SORT_OPTIONS);
 
+// The only values classifyLanguage (integrations/jobs/languageClassifier.js)
+// ever assigns ("en"/"other"), plus "all" — the query-only sentinel
+// jobService.buildJobFilter recognizes as "no language filter". Not derived
+// from the Job schema (backend/models/Job.js's `language` field has no
+// enum) since "all" isn't a storable value, only a query option.
+const LANGUAGE_QUERY_VALUES = ["en", "other", "all"];
+
 function parsePositiveInt(rawValue) {
   if (rawValue === undefined) return { ok: true, value: undefined };
   if (!/^\d+$/.test(String(rawValue))) return { ok: false };
@@ -59,6 +66,18 @@ export function parseListJobsQuery(query, experienceLevelEnumValues) {
   const remote = parseBooleanParam(query.is_remote);
   if (!remote.ok) errors.push("is_remote must be 'true' or 'false'.");
   else if (remote.value !== undefined) options.is_remote = remote.value;
+
+  // Left unset (not defaulted here) when absent — jobService.buildJobFilter
+  // is responsible for defaulting an absent `language` option to "en";
+  // this layer only validates/passes through an explicitly given value.
+  if (query.language !== undefined) {
+    const value = String(query.language).trim();
+    if (!LANGUAGE_QUERY_VALUES.includes(value)) {
+      errors.push(`language must be one of: ${LANGUAGE_QUERY_VALUES.join(", ")}.`);
+    } else {
+      options.language = value;
+    }
+  }
 
   for (const field of ["country", "state", "city", "location", "source"]) {
     if (query[field] !== undefined) {

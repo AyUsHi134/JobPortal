@@ -132,3 +132,33 @@ export function createIsJobSavedHandler(deps = {}) {
   };
 }
 export const isJobSaved = createIsJobSavedHandler();
+
+export function createUnsaveJobHandler(deps = {}) {
+  const UserModel = deps.User || User;
+
+  return async function unsaveJob(req, res) {
+    try {
+      const { jobId } = req.body;
+      if (!isValidObjectId(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID." });
+      }
+
+      // Same identity rule as saveJob/isJobSaved: always the authenticated
+      // caller's own saved-jobs list (req.user.id, the verified JWT
+      // subject), never a client-suppliable id.
+      const user = await UserModel.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      // Idempotent: removing a job that isn't in the list is a no-op,
+      // not an error — filter() already handles "not present" safely.
+      user.savedJobs = user.savedJobs.filter((id) => id.toString() !== jobId);
+      await user.save();
+
+      res.json({ success: true, savedJobs: user.savedJobs });
+    } catch (err) {
+      console.error("Failed to unsave job:", err.message);
+      res.status(500).json({ error: "Failed to unsave job. Please try again later." });
+    }
+  };
+}
+export const unsaveJob = createUnsaveJobHandler();
