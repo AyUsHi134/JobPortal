@@ -1,31 +1,34 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Container, Typography, Button, TextField, Grid, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "../components/JobCard/JobCard.scss";
 import "./Home.scss";
 import JobCard from "../components/JobCard/JobCard";
+import GuestSignupCta from "../components/GuestSignupCta/GuestSignupCta";
 import { listJobs } from "../services/jobsApi.js";
-import { useAuth } from "../hooks/useAuth.js";
+import { useGuestJobLimit } from "../hooks/useGuestJobLimit.js";
 import { validateSearchQuery, buildJobSearchPath } from "../utils/homepageSearch.js";
-import {
-  HOMEPAGE_PAGE_SIZE,
-  mergeUniqueJobs,
-  capJobsForGuest,
-  canLoadMoreHomepageJobs,
-  shouldShowGuestSignupCta,
-} from "../utils/homepageJobsState.js";
+import { HOMEPAGE_PAGE_SIZE, mergeUniqueJobs } from "../utils/homepageJobsState.js";
 
 // Phase 2G-3: rebuilt the homepage's search + job-browsing behavior onto
-// real backend pagination and an honest guest-browsing limit, and
-// rewrote the marketing copy to only claim what this product actually
-// does. All state-transition rules (merge/dedupe, the guest cap, when
-// "View More" may fire) live in the pure utils/homepageJobsState.js —
-// this component only wires them to React state and the existing
-// centralized jobsApi service; see testHomepageJobs.js/testHomepageSearch.js.
+// real backend pagination, and rewrote the marketing copy to only claim
+// what this product actually does. Job merge/dedupe-on-append lives in the
+// pure utils/homepageJobsState.js — this component only wires that to
+// React state and the existing centralized jobsApi service; see
+// testHomepageJobs.js/testHomepageSearch.js.
+//
+// The guest browsing limit itself is no longer decided here at all: it
+// used to be a client-side 40-job cap (capJobsForGuest/
+// canLoadMoreHomepageJobs/shouldShowGuestSignupCta, all still in
+// homepageJobsState.js but unused by this component now) applied only on
+// this page. It's now the backend's `guestLimitReached` flag on every
+// GET /api/jobs response (backend/controllers/jobs.js), read via
+// useGuestJobLimit — the same flag FindJob.jsx now reacts to as well, so
+// the limit is finally enforced consistently everywhere, not just here.
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { guestLimitReached, recordJobsResponse } = useGuestJobLimit();
 
   const [jobs, setJobs] = useState([]);
   const [page, setPage] = useState(1);
@@ -66,20 +69,27 @@ export default function Home() {
 
     setStatus("loading");
     listJobs({ page: 1, limit: HOMEPAGE_PAGE_SIZE })
-      .then(({ jobs: fetchedJobs, pagination: fetchedPagination }) => {
-        setJobs(fetchedJobs);
-        setPagination(fetchedPagination);
+      .then((response) => {
+        setJobs(response.jobs);
+        setPagination(response.pagination);
         setPage(1);
         setStatus("success");
+        recordJobsResponse(response);
       })
       .catch((err) => {
         setLoadError(err.message || "Failed to load jobs.");
         setStatus("error");
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recordJobsResponse is a stable useCallback identity; including it would not change this effect's one-time-fetch behavior.
   }, []);
 
-  const canLoadMore = canLoadMoreHomepageJobs({ jobsCount: jobs.length, pagination, isAuthenticated });
-  const showGuestSignupCta = shouldShowGuestSignupCta({ jobsCount: jobs.length, pagination, isAuthenticated });
+  // The backend is the sole authority on whether a guest may keep
+  // browsing (`guestLimitReached`, computed from the httpOnly `guestId`
+  // cookie — see backend/controllers/jobs.js): once reached, "View More"
+  // stops offering another page and the signup CTA takes its place. A
+  // logged-in request always gets `guestLimitReached: false` from the
+  // backend, so this never gates an authenticated user.
+  const canLoadMore = Boolean(pagination) && pagination.page < pagination.totalPages && !guestLimitReached;
 
   // Synchronous re-entrancy guard: `isFetchingMoreRef` is checked AND set
   // before `listJobs` is ever called, so a second invocation that starts
@@ -98,13 +108,11 @@ export default function Home() {
     setViewMoreError(null);
     const nextPage = page + 1;
     try {
-      const { jobs: fetchedJobs, pagination: fetchedPagination } = await listJobs({
-        page: nextPage,
-        limit: HOMEPAGE_PAGE_SIZE,
-      });
-      setJobs((prev) => capJobsForGuest(mergeUniqueJobs(prev, fetchedJobs), isAuthenticated));
-      setPagination(fetchedPagination);
+      const response = await listJobs({ page: nextPage, limit: HOMEPAGE_PAGE_SIZE });
+      setJobs((prev) => mergeUniqueJobs(prev, response.jobs));
+      setPagination(response.pagination);
       setPage(nextPage);
+      recordJobsResponse(response);
     } catch (err) {
       // Scoped to `viewMoreError`, never `loadError` — the already-loaded
       // `jobs`/`page` are deliberately left untouched here, so the existing
@@ -465,49 +473,7 @@ export default function Home() {
                 </Box>
               )}
 
-              {showGuestSignupCta && (
-                <Box
-                  sx={{
-                    mt: 4,
-                    mx: "auto",
-                    maxWidth: 480,
-                    textAlign: "center",
-                    bgcolor: "background.paper",
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 2,
-                    p: 3,
-                  }}
-                >
-                  <Typography fontWeight={700} sx={{ mb: 0.5 }}>
-                    Want to explore more jobs?
-                  </Typography>
-                  <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
-                    Create a free account to keep browsing — and save the jobs you like along the way.
-                  </Typography>
-                  {/* This Button renders as a real <a> (component={Link}), so it
-                      also matches main.scss's global `a:hover { color:
-                      $primary-hover }` rule — and $primary-hover is the exact
-                      same hex as this button's own MUI hover background
-                      (theme.palette.primary.dark), since that global rule has
-                      higher CSS specificity (element+pseudo-class) than MUI's
-                      single generated class for text color, it was winning on
-                      hover and making the white "Sign Up" text repaint the
-                      same color as the background — invisible. Forcing the
-                      hover text color back to white here (scoped to this one
-                      button only) fixes exactly that; normal/rest appearance,
-                      size, position, and every other CTA style are untouched. */}
-                  <Button
-                    component={Link}
-                    to="/signup"
-                    variant="contained"
-                    color="primary"
-                    sx={{ fontWeight: 700, "&:hover": { color: "#fff !important" } }}
-                  >
-                    Sign Up
-                  </Button>
-                </Box>
-              )}
+              {guestLimitReached && <GuestSignupCta />}
             </Box>
           </Box>
         </Container>

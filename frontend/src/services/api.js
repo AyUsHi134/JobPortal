@@ -168,7 +168,14 @@ function normalizeError(error) {
 // directly.
 // ---------------------------------------------------------------------------
 
-export const apiClient = axios.create({ baseURL: API_BASE_URL });
+// `withCredentials: true` is required for the backend's httpOnly `guestId`
+// cookie (backend/controllers/jobs.js's guest job-view tracking) to ever
+// be stored/sent by the browser at all — frontend and backend run on
+// different origins (localhost:5173 vs localhost:5000) in dev, and a
+// cross-origin XHR/fetch only persists/attaches a `Set-Cookie` response
+// when the request itself opts into credentialed mode; the backend's own
+// `cors({ credentials: true })` (backend/index.js) already allows this.
+export const apiClient = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 
 apiClient.interceptors.request.use((config) => {
   const token = getToken();

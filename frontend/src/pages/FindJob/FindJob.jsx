@@ -1,8 +1,10 @@
 import React, { useEffect, useReducer, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import JobCard from "../../components/JobCard/JobCard";
+import GuestSignupCta from "../../components/GuestSignupCta/GuestSignupCta";
 import { listJobs } from "../../services/jobsApi.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
+import { useGuestJobLimit } from "../../hooks/useGuestJobLimit.js";
 import {
   DEFAULT_DISCOVERY_FILTERS,
   INITIAL_DISCOVERY_STATE,
@@ -27,6 +29,7 @@ import "./FindJob.scss";
 // functions — this component only wires them to React state and JSX.
 export default function FindJob() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { guestLimitReached, recordJobsResponse } = useGuestJobLimit();
 
   // Read the initial filter state from the URL exactly once, so a
   // shared/refreshed search link reproduces the same query. See
@@ -60,9 +63,10 @@ export default function FindJob() {
     let cancelled = false;
     dispatch({ type: "FETCH_START" });
     listJobs(filters)
-      .then(({ jobs, pagination }) => {
+      .then((response) => {
         if (cancelled) return;
-        dispatch({ type: "FETCH_SUCCESS", jobs, pagination });
+        dispatch({ type: "FETCH_SUCCESS", jobs: response.jobs, pagination: response.pagination });
+        recordJobsResponse(response);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -297,6 +301,12 @@ export default function FindJob() {
                 </button>
               </div>
             )}
+
+            {/* Same backend-enforced guest job-view limit Home.jsx reacts to
+                (`guestLimitReached`, backend/controllers/jobs.js) — shown here
+                without touching this page's own filter/search/pagination
+                logic above, which stays governed purely by `state.pagination`. */}
+            {guestLimitReached && <GuestSignupCta />}
           </>
         )}
         </section>

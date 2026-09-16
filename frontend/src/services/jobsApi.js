@@ -42,16 +42,19 @@ export function buildJobQueryParams(filters = {}) {
 
 /**
  * GET /api/jobs — search/filter/sort/pagination, per BACKEND_API_CONTRACT.md
- * §3. Returns `{ jobs, pagination }` (already unwrapped from the backend's
- * `{success, data, pagination}` envelope) — callers never need to know
- * about the envelope. Calling with no `filters` reproduces today's
- * call sites' behavior exactly (a plain "give me jobs" request), which
- * means the backend's own default pagination (page 1, limit 20) applies —
- * see PHASE_2B_REPORT.md for why this phase does not change that.
+ * §3. Returns `{ jobs, pagination, guestLimitReached }` (already unwrapped
+ * from the backend's `{success, data, pagination, guestLimitReached}`
+ * envelope) — callers never need to know about the envelope.
+ * `guestLimitReached` is the backend-enforced guest job-view limit flag
+ * (backend/controllers/jobs.js) — see hooks/useGuestJobLimit.js. Calling
+ * with no `filters` reproduces today's call sites' behavior exactly (a
+ * plain "give me jobs" request), which means the backend's own default
+ * pagination (page 1, limit 20) applies — see PHASE_2B_REPORT.md for why
+ * this phase does not change that.
  */
 export async function listJobs(filters = {}) {
   const { data } = await apiClient.get("/api/jobs", { params: buildJobQueryParams(filters) });
-  return { jobs: data.data, pagination: data.pagination };
+  return { jobs: data.data, pagination: data.pagination, guestLimitReached: data.guestLimitReached };
 }
 
 /**

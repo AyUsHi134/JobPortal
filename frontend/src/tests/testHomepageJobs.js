@@ -130,9 +130,10 @@ console.log("\n[6] Home.jsx wiring — job loading uses the centralized jobsApi 
 console.log("\n[7] Home.jsx wiring — the backend's real {success, data, pagination} envelope is handled, never a bare-array assumption (item 8)");
 {
   const home = readSource("pages/Home.jsx");
-  check("the initial load destructures both jobs and pagination from listJobs()'s resolved value", /\.then\(\(\{ jobs: fetchedJobs, pagination: fetchedPagination \}\) =>/.test(home));
+  check("the initial load reads both jobs and pagination from listJobs()'s resolved response", /\.then\(\(response\) => \{[\s\S]*?setJobs\(response\.jobs\);[\s\S]*?setPagination\(response\.pagination\);/.test(home));
   check("pagination is kept in its own state, not discarded", /const \[pagination, setPagination\] = useState/.test(home));
   check("the initial request explicitly requests a bounded page/limit rather than relying on an implicit bare fetch", /listJobs\(\{ page: 1, limit: HOMEPAGE_PAGE_SIZE \}\)/.test(home));
+  check("the initial response is also handed to recordJobsResponse, so guestLimitReached is tracked from page 1 on", /setStatus\("success"\);\s*recordJobsResponse\(response\);/.test(home));
 }
 
 // ---------------------------------------------------------------------------
@@ -141,8 +142,8 @@ console.log("\n[8] Home.jsx wiring — View More requests the next real backend 
   const home = readSource("pages/Home.jsx");
   check("handleViewMore computes the next page as page + 1", /const nextPage = page \+ 1;/.test(home));
   check("handleViewMore calls listJobs with that next page and the same page size", /listJobs\(\{\s*page: nextPage,\s*limit: HOMEPAGE_PAGE_SIZE,?\s*\}\)/.test(home));
-  check("new jobs are merged through mergeUniqueJobs (no duplicates) and capped through capJobsForGuest (no guest overrun)", /capJobsForGuest\(mergeUniqueJobs\(prev, fetchedJobs\), isAuthenticated\)/.test(home));
-  check("the View More button itself is only rendered when canLoadMoreHomepageJobs says so (never shown past the cap/last page)", /\{canLoadMore &&/.test(home));
+  check("new jobs are merged through mergeUniqueJobs (no duplicates); the old client-side 40-job cap (capJobsForGuest) is no longer called — the backend's guestLimitReached flag is the sole authority now", /mergeUniqueJobs\(prev, response\.jobs\)/.test(home) && !/capJobsForGuest\(/.test(home));
+  check("the View More button is only rendered when there's a further backend page AND the guest limit hasn't been reached (canLoadMoreHomepageJobs is gone — canLoadMore is derived inline from pagination + guestLimitReached)", /\{canLoadMore &&/.test(home) && /pagination\.page < pagination\.totalPages && !guestLimitReached/.test(home));
   // Updated in place (same "revise the check, don't weaken it" convention
   // section [1] above already established): the guard is now a `useRef`
   // checked/set synchronously, not the `loadingMore` state read — a state
@@ -159,7 +160,8 @@ console.log("\n[8] Home.jsx wiring — View More requests the next real backend 
     return guardIdx !== -1 && dispatchIdx !== -1 && guardIdx < dispatchIdx;
   })());
   check("the ref is reset in a finally block, so a later click after completion/failure is never permanently blocked", /finally \{\s*setLoadingMore\(false\);\s*isFetchingMoreRef\.current = false;\s*\}/.test(home));
-  check("isAuthenticated is read from the existing AuthContext via useAuth(), not reimplemented", /const \{ isAuthenticated \} = useAuth\(\);/.test(home));
+  check("each View More response is handed to recordJobsResponse, keeping guestLimitReached current", /recordJobsResponse\(response\);/.test(home));
+  check("guest-limit state now comes from the shared useGuestJobLimit hook, not a reimplemented client-side auth/cap check", /const \{ guestLimitReached, recordJobsResponse \} = useGuestJobLimit\(\);/.test(home) && !/useAuth\(\)/.test(home));
 }
 
 // ---------------------------------------------------------------------------
