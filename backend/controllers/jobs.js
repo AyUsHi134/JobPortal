@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 import * as jobService from "../services/jobService.js";
 
 const VALID_SORTS = Object.keys(jobService.SORT_OPTIONS);
@@ -23,6 +25,57 @@ function parseBooleanParam(rawValue) {
   if (rawValue === "true") return { ok: true, value: true };
   if (rawValue === "false") return { ok: true, value: false };
   return { ok: false };
+}
+
+const GUEST_COOKIE_NAME = "guestId";
+const GUEST_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // ~30 days
+
+/**
+ * Mirrors middleware/auth.js's own Authorization-header/JWT check, but
+ * never rejects the request — GET /api/jobs stays public either way. Used
+ * only to decide whether guest job-view tracking applies to this request;
+ * a missing, malformed, or invalid/expired token is simply treated as
+ * "not authenticated" (the correct outcome for a genuine guest request
+ * too), never surfaced as an error here.
+ */
+function isAuthenticatedRequest(req) {
+  const header = typeof req.header === "function" ? req.header("Authorization") : undefined;
+  if (!header) return false;
+  const token = header.split(" ")[1];
+  if (!token) return false;
+  try {
+    jwt.verify(token, process.env.JWT_SECRET);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Applies the backend-enforced guest job-view limit to one GET /api/jobs
+ * request: identifies/issues the `guestId` cookie, adds `jobsServedCount`
+ * to that guest's cumulative in-memory total (jobService.recordGuestJobsServed),
+ * and reports whether that guest has now reached GUEST_JOB_LIMIT. A no-op
+ * (returns `false`, sets no cookie) for an authenticated request — logged-
+ * in browsing is never capped, matching the frontend's own existing rule
+ * (homepageJobsState.js's capJobsForGuest). `res.cookie` is called only
+ * when available so this stays safe to run against the fixture `res`
+ * objects backend/scripts/testJobListing.js and testJobSearch.js use,
+ * which don't implement it.
+ */
+function applyGuestJobLimit(req, res, jobsServedCount) {
+  if (isAuthenticatedRequest(req)) return false;
+
+  let guestId = req.cookies && req.cookies[GUEST_COOKIE_NAME];
+  if (!guestId) {
+    guestId = randomUUID();
+    if (typeof res.cookie === "function") {
+      res.cookie(GUEST_COOKIE_NAME, guestId, { httpOnly: true, maxAge: GUEST_COOKIE_MAX_AGE_MS });
+    }
+  }
+
+  const totalServed = jobService.recordGuestJobsServed(guestId, jobsServedCount);
+  return totalServed >= jobService.GUEST_JOB_LIMIT;
 }
 
 /**
@@ -137,6 +190,7 @@ export function createListJobsHandler(deps = {}) {
     try {
       const { jobs, total } = await searchJobs(parsed.options);
       const { page, limit } = parsed.options;
+      const guestLimitReached = applyGuestJobLimit(req, res, jobs.length);
       res.json({
         success: true,
         data: jobs,
@@ -146,6 +200,7 @@ export function createListJobsHandler(deps = {}) {
           total,
           totalPages: Math.ceil(total / limit),
         },
+        guestLimitReached,
       });
     } catch (err) {
       // Never echoes err.message/err.stack to the client — a raw
