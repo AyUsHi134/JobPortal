@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createSaveJobHandler, createIsJobSavedHandler } from "../controllers/user.js";
+import { createSaveJobHandler, createIsJobSavedHandler, createUnsaveJobHandler } from "../controllers/user.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -229,6 +229,71 @@ console.log("\n[S10] No secrets, tokens, or Authorization headers ever appear in
   await handler(req, res);
 
   check("the Authorization header value never appears in the response body", !JSON.stringify(res.body).includes("some.fake.jwt.token.value"));
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[S11] An authenticated user can unsave a previously-saved job from their own account");
+{
+  const { UserModel, records } = makeFakeUserStore({
+    [SELF_ID]: { _id: SELF_ID, savedJobs: [VALID_JOB_ID_1, VALID_JOB_ID_2] },
+  });
+  const handler = createUnsaveJobHandler({ User: UserModel });
+  const res = fakeRes();
+  await handler(authedReq(SELF_ID, { jobId: VALID_JOB_ID_1 }), res);
+
+  check("HTTP 200", res.statusCode === 200);
+  check("success: true", res.body.success === true);
+  check("the job was actually removed from the caller's own savedJobs", !records[SELF_ID].savedJobs.includes(VALID_JOB_ID_1));
+  check("an unrelated saved job is untouched", records[SELF_ID].savedJobs.includes(VALID_JOB_ID_2));
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[S12] Unsaving a job that isn't saved is an idempotent no-op, not an error");
+{
+  const { UserModel, records } = makeFakeUserStore({ [SELF_ID]: { _id: SELF_ID, savedJobs: [VALID_JOB_ID_2] } });
+  const handler = createUnsaveJobHandler({ User: UserModel });
+  const res = fakeRes();
+  await handler(authedReq(SELF_ID, { jobId: VALID_JOB_ID_1 }), res);
+
+  check("HTTP 200 (no error for unsaving a not-saved job)", res.statusCode === 200);
+  check("the existing saved job is untouched", records[SELF_ID].savedJobs.includes(VALID_JOB_ID_2));
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[S13] A user CANNOT unsave a job from another user's account, even if they supply that user's id");
+{
+  const { UserModel, records, findByIdCalls } = makeFakeUserStore({
+    [SELF_ID]: { _id: SELF_ID, savedJobs: [] },
+    [OTHER_USER_ID]: { _id: OTHER_USER_ID, savedJobs: [VALID_JOB_ID_1] },
+  });
+  const handler = createUnsaveJobHandler({ User: UserModel });
+  const res = fakeRes();
+  await handler(authedReq(SELF_ID, { jobId: VALID_JOB_ID_1, userId: OTHER_USER_ID }), res);
+
+  check("HTTP 200 (the request succeeds, but only against the caller's own account)", res.statusCode === 200);
+  check("only the authenticated caller's id was ever looked up — the body's userId was never used", findByIdCalls.length === 1 && findByIdCalls[0] === SELF_ID);
+  check("the OTHER user's saved-jobs list was never touched", records[OTHER_USER_ID].savedJobs.includes(VALID_JOB_ID_1));
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[S14] Malformed job ids are rejected with 400 for unsaveJob too, not passed through to the database");
+{
+  for (const badJobId of ["abc", "", "not-an-id", "../../etc/passwd"]) {
+    const { UserModel, findByIdCalls } = makeFakeUserStore({ [SELF_ID]: { _id: SELF_ID, savedJobs: [] } });
+    const handler = createUnsaveJobHandler({ User: UserModel });
+    const res = fakeRes();
+    await handler(authedReq(SELF_ID, { jobId: badJobId }), res);
+
+    check(`unsaveJob: "${badJobId}" → HTTP 400`, res.statusCode === 400);
+    check(`"${badJobId}" never reached the database layer`, findByIdCalls.length === 0);
+  }
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[S15] Unauthenticated requests cannot reach the unsave-job handler (route wiring)");
+{
+  const routeSource = fs.readFileSync(path.resolve(__dirname, "../routes/user.js"), "utf8");
+  check("POST /unsavejob is wired through authMiddleware", /router\.post\(\s*["']\/unsavejob["']\s*,\s*authMiddleware\s*,\s*unsaveJob\s*\)/.test(routeSource));
 }
 
 console.log("\n============================");

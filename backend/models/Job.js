@@ -50,6 +50,11 @@ const JobSchema = new mongoose.Schema(
     },
     source_category: { type: String, default: null },
 
+    // Set by classifyJob.js (integrations/jobs/languageClassifier.js) —
+    // "en" or "other", tagging-only, never blocks ingestion. Consumed by
+    // jobService.buildJobFilter as the GET /api/jobs default filter.
+    language: { type: String, default: "en" },
+
     logo: { type: String, default: "" },
 
     date_posted: { type: Date, required: true, default: Date.now },
@@ -91,6 +96,15 @@ JobSchema.index({ status: 1, date_posted: -1 });
 JobSchema.index({ "location.country": 1, is_tech_relevant: 1, experience_level: 1 });
 JobSchema.index({ dedup_fingerprint: 1 });
 JobSchema.index({ expires_at: 1 });
-JobSchema.index({ title: "text", tags: "text", normalized_skills: "text" });
+// A {title, tags, normalized_skills} text index previously lived here.
+// Removed: nothing in this codebase ever ran a $text query against it
+// (jobService.buildJobFilter deliberately uses an escaped-regex $or
+// instead — see its own comment), and MongoDB text indexes reserve a
+// top-level `language` field on every document as a per-document stemming
+// override, which collided with this schema's own `language`
+// classification field (MongoServerError 17262 "language override
+// unsupported" on any value other than a few it happens to recognize,
+// e.g. "en"). Dropping the unused index removes the collision with no
+// loss of functionality.
 
 export default mongoose.model("Job", JobSchema);

@@ -14,6 +14,7 @@ import User from "../models/User.js";
 export function createRegisterHandler(deps = {}) {
   const UserModel = deps.User || User;
   const hash = deps.hash || bcrypt.hash;
+  const sign = deps.sign || jwt.sign;
 
   return async function register(req, res) {
     const { name, email, password } = req.body;
@@ -27,7 +28,8 @@ export function createRegisterHandler(deps = {}) {
 
       // Never echoes the hash, the plaintext password, or any other user
       // field back to the client.
-      res.status(201).json({ msg: "User created" });
+      const token = sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "2d" });
+      res.status(201).json({ token, user: { name: user.name, email: user.email } });
     } catch (err) {
       res.status(500).json({ msg: "Server error" });
     }

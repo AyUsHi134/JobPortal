@@ -1,6 +1,6 @@
 import express from "express";
 import authMiddleware from "../middleware/auth.js";
-import { getProfile, updateProfile, saveJob, isJobSaved } from "../controllers/user.js";
+import { getProfile, updateProfile, saveJob, isJobSaved, unsaveJob } from "../controllers/user.js";
 
 const router = express.Router();
 
@@ -14,5 +14,9 @@ router.post("/savejob", authMiddleware, saveJob);
 
 // Check if Job is Saved — same fix, same reason.
 router.post("/issaved", authMiddleware, isJobSaved);
+
+// Unsave Job — same auth pattern as /savejob (owner is always req.user.id
+// from the verified JWT, never a client-supplied id).
+router.post("/unsavejob", authMiddleware, unsaveJob);
 
 export default router;

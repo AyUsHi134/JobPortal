@@ -1,5 +1,10 @@
 import Job from "../models/Job.js";
 import { computeDedupFingerprint } from "./dedupFingerprint.js";
+import {
+  decodeHtmlEntities,
+  repairMojibake,
+  isPlaceholderOrGarbledTitle,
+} from "../integrations/jobs/normalizationHelpers.js";
 
 export async function listJobs(filter = {}) {
   return Job.find(filter);
@@ -28,6 +33,7 @@ const PUBLIC_LISTING_FIELDS_LIST = [
   "is_tech_relevant",
   "tech_relevance_source",
   "source_category",
+  "language",
   "tags",
   "normalized_skills",
   "logo",
@@ -37,6 +43,17 @@ const PUBLIC_LISTING_FIELDS_LIST = [
   "source_id",
 ];
 const PUBLIC_LISTING_FIELDS = PUBLIC_LISTING_FIELDS_LIST.join(" ");
+
+// `searchJobs` (GET /api/jobs, the multi-job listing endpoint) is the only
+// consumer of this — no frontend list view (Home.jsx's/FindJob.jsx's
+// JobCard) renders `description`, only the single-job detail page does.
+// Derived from PUBLIC_LISTING_FIELDS_LIST (not a second, independently
+// maintained list) so the two field sets can never silently drift apart on
+// anything but this one deliberate exclusion. getActiveJobById/toPublicJob
+// (the detail endpoint and the create/update response shape) are
+// untouched and keep using PUBLIC_LISTING_FIELDS/PUBLIC_LISTING_FIELDS_LIST
+// as-is, so their contracts are unaffected.
+const PUBLIC_SEARCH_RESULT_FIELDS = PUBLIC_LISTING_FIELDS_LIST.filter((field) => field !== "description").join(" ");
 
 // The schema's own approved enum, read directly from the Mongoose model
 // rather than duplicated here — keeps the API's validation perfectly in
@@ -62,6 +79,27 @@ export const DEFAULT_SORT = "newest";
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_LIMIT = 20;
 export const MAX_LIMIT = 100;
+
+// Backend-enforced guest job-view limit, mirroring the frontend's own
+// GUEST_JOB_LIMIT (frontend/src/utils/homepageJobsState.js) so both sides
+// agree on the same number. Cumulative per-guest counts are tracked only
+// in memory — no DB collection — since a guest's count is a soft, purely
+// client-revocable (clear cookies) browsing signal, not a security
+// boundary; losing it on a server restart is acceptable.
+export const GUEST_JOB_LIMIT = 40;
+const guestJobCounts = new Map();
+
+/**
+ * Adds `count` newly-served jobs to `guestId`'s cumulative total and
+ * returns the new total. Called once per GET /api/jobs request for an
+ * unauthenticated caller (controllers/jobs.js), after the page of jobs
+ * for that request has already been fetched.
+ */
+export function recordGuestJobsServed(guestId, count) {
+  const total = (guestJobCounts.get(guestId) || 0) + count;
+  guestJobCounts.set(guestId, total);
+  return total;
+}
 
 // Escapes every regex metacharacter so a user-supplied search string can
 // only ever match itself literally — this is what makes building a
@@ -106,6 +144,17 @@ export function buildJobFilter(options = {}) {
   if (options.is_tech_relevant !== undefined) filter.is_tech_relevant = options.is_tech_relevant;
   if (options.is_remote !== undefined) filter.is_remote = options.is_remote;
   if (options.source) filter.source = options.source;
+
+  // Language defaults to English-only when the caller doesn't specify it
+  // at all — most existing callers/consumers never asked for this filter
+  // and shouldn't suddenly see non-English jobs mixed into their results.
+  // `"all"` is the explicit opt-out (no language filter at all); any other
+  // provided value filters to exactly that value (e.g. "other").
+  if (options.language === undefined) {
+    filter.language = "en";
+  } else if (options.language !== "all") {
+    filter.language = options.language;
+  }
 
   // Country/state/city: case-insensitive EXACT match (anchored ^...$)
   // against structured, source-provided values — never partial, since
@@ -158,7 +207,7 @@ export async function searchJobs(options = {}) {
   const skip = (page - 1) * limit;
 
   const [jobs, total] = await Promise.all([
-    Job.find(filter).select(PUBLIC_LISTING_FIELDS).sort(sort).skip(skip).limit(limit).lean(),
+    Job.find(filter).select(PUBLIC_SEARCH_RESULT_FIELDS).sort(sort).skip(skip).limit(limit).lean(),
     Job.countDocuments(filter),
   ]);
 
@@ -231,16 +280,64 @@ export function toPublicJob(jobDoc) {
  *    (`status`, `dedup_fingerprint`, `expires_at`, `hiring_stage`,
  *    `last_seen_at`) it should never control directly.
  */
+const MANUAL_JOB_CLEAN_TEXT_FIELDS = ["title", "company", "description"];
+const MANUAL_JOB_LOCATION_TEXT_FIELDS = ["raw", "display_name", "city", "state", "country"];
+
+// Manually-submitted content (POST/PUT /api/jobs) never passes through the
+// ingestion normalizers (backend/integrations/jobs/*Normalizer.js), so a
+// client could otherwise submit raw HTML-entity or mojibake-corrupted text
+// that a fetched job would never have. Applying the exact same, already-
+// approved cleanup functions here — decodeHtmlEntities/repairMojibake,
+// never reimplemented — holds manually-created/updated jobs to the same
+// text-quality bar as ingested ones. Both functions already pass a
+// non-string (including null) straight through unchanged, so this is safe
+// to call unconditionally on any field that's actually a string.
+function cleanManualJobFields(picked) {
+  for (const field of MANUAL_JOB_CLEAN_TEXT_FIELDS) {
+    if (typeof picked[field] === "string") {
+      picked[field] = decodeHtmlEntities(repairMojibake(picked[field]));
+    }
+  }
+  if (picked.location && typeof picked.location === "object") {
+    const cleanedLocation = { ...picked.location };
+    for (const field of MANUAL_JOB_LOCATION_TEXT_FIELDS) {
+      if (typeof cleanedLocation[field] === "string") {
+        cleanedLocation[field] = decodeHtmlEntities(repairMojibake(cleanedLocation[field]));
+      }
+    }
+    picked.location = cleanedLocation;
+  }
+  return picked;
+}
+
 export function pickManualJobFields(data) {
   const picked = {};
   for (const field of UPSERT_CONTENT_FIELDS) {
     if (data && data[field] !== undefined) picked[field] = data[field];
   }
-  return picked;
+  return cleanManualJobFields(picked);
 }
 
 export async function createManualJob(data) {
-  const job = new Job({ ...pickManualJobFields(data), source: "manual" });
+  const fields = pickManualJobFields(data);
+
+  // Mirrors the ingestion pipeline's own reject path: normalizeAdzunaJob/
+  // normalizeRemoteOKJob call this exact same isPlaceholderOrGarbledTitle
+  // function and return fail() on a match, refusing to persist the record.
+  // Thrown here in the same shape a Mongoose ValidationError already has
+  // (err.name + err.errors[field].message), so the existing createJob
+  // controller's established {err.name === "ValidationError" -> 400}
+  // handling (controllers/jobs.js) covers this with no controller change.
+  if (typeof fields.title === "string" && isPlaceholderOrGarbledTitle(fields.title)) {
+    const err = new Error("Invalid job data.");
+    err.name = "ValidationError";
+    err.errors = {
+      title: { message: `Title rejected as placeholder/garbled/non-English: "${fields.title}".` },
+    };
+    throw err;
+  }
+
+  const job = new Job({ ...fields, source: "manual" });
   return job.save();
 }
 
@@ -295,6 +392,7 @@ const UPSERT_CONTENT_FIELDS = [
   "is_tech_relevant",
   "tech_relevance_source",
   "source_category",
+  "language",
   "logo",
   "date_posted", // only included if actually present, per Phase 1E's "omit when unknown" convention
 ];

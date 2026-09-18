@@ -92,7 +92,7 @@ console.log("\n[A1] Signup succeeds with valid input");
   await handler({ body: { name: "Asha", email: "asha@example.com", password: "correct horse battery staple" } }, res);
 
   check("HTTP 201 on successful signup", res.statusCode === 201);
-  check("response body confirms creation, no user object echoed", res.body.msg === "User created" && res.body.user === undefined);
+  check("response body auto-logs the new user in: a real token plus {name, email}, no password/hash echoed", typeof res.body.token === "string" && res.body.token.length > 0 && res.body.user.name === "Asha" && res.body.user.email === "asha@example.com" && res.body.user.password === undefined);
   check("a real hash call was made with the plaintext password and a real bcrypt cost factor", hashCalledWith.pw === "correct horse battery staple" && hashCalledWith.rounds === 10);
 }
 

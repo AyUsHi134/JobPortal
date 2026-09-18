@@ -120,7 +120,8 @@ console.log("\n[L2] Response structure is consistent (success + data + paginatio
   check("`success` is true on a successful call", res.body.success === true);
   check("body has a `data` array field", Array.isArray(res.body.data));
   check("body has a `pagination` object field (Phase 1I-2 extension)", typeof res.body.pagination === "object" && res.body.pagination !== null);
-  check("body has no unexpected extra top-level keys", Object.keys(res.body).sort().join(",") === "data,pagination,success");
+  check("body has a boolean `guestLimitReached` field (backend-enforced guest job-view limit)", typeof res.body.guestLimitReached === "boolean");
+  check("body has no unexpected extra top-level keys", Object.keys(res.body).sort().join(",") === "data,guestLimitReached,pagination,success");
 }
 
 // ---------------------------------------------------------------------------
