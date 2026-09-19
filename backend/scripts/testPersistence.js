@@ -1,13 +1,4 @@
-// Deterministic + (best-effort) live verification for the Phase 1G
-// persistence layer. Part A requires no MongoDB connection at all. Part B
-// attempts a real connection using the existing backend/.env credentials
-// (never modified, never printed) and ONLY runs live writes if that
-// connection actually succeeds — if it fails, live tests are reported as
-// skipped, never faked as passing. Any live test records created are
-// tagged with a unique marker and cleaned up with a targeted deleteOne
-// against that exact marker only — never deleteMany/drop.
-//
-// Run via: node backend/scripts/testPersistence.js
+// Persistence verification, live optional
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,8 +8,7 @@ import mongoose from "mongoose";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-// Fail DB-dependent calls fast instead of buffering for the default 10s,
-// since Part A deliberately exercises some paths with no connection yet.
+// Fail fast without connection
 mongoose.set("bufferTimeoutMS", 3000);
 
 import Job from "../models/Job.js";
@@ -149,7 +139,7 @@ console.log("\n[A7] buildUpsertSet excludes lifecycle/internal fields even if pr
 const poisoned = {
   ...adzunaJob(),
   _id: "should-never-be-copied",
-  status: "expired", // simulates accidentally re-feeding an already-persisted doc
+  status: "expired", // Re-feeding persisted doc
   expires_at: new Date("2020-01-01"),
   hiring_stage: "interviewing",
   createdAt: new Date("2000-01-01"),
@@ -196,9 +186,9 @@ console.log("\n[A10] Batch pipeline: one DB-dependent failure does not stop the 
 console.log("      (no live connection is open yet, so the valid job below is expected to fail fast");
 console.log("      via bufferTimeoutMS — this is itself a valid resilience check.)");
 const batchResult = await persistJobs([
-  adzunaJob({ source_id: "BATCH-TEST-1" }), // will fail: no DB connection yet
+  adzunaJob({ source_id: "BATCH-TEST-1" }), // Fails: no connection
   { ...adzunaJob({ source_id: "BATCH-TEST-2" }), source_id: "" }, // pre-flight skip, no DB needed
-  remoteOkJob({ source_id: "BATCH-TEST-3" }), // will also fail: no DB connection yet
+  remoteOkJob({ source_id: "BATCH-TEST-3" }), // Also fails: no connection
 ]);
 check("persistJobs did not throw for the whole batch", true); // reaching this line proves it
 check("summary.total === 3", batchResult.summary.total === 3);
@@ -285,7 +275,7 @@ if (!liveConnected) {
     console.log("\n[B7] Malformed normalized job does not crash the batch (live context)");
     const malformedBatch = await persistJobs([
       adzunaJob({ source_id: `${TEST_MARKER}-3`, title: "PHASE1G TEST Full Stack Developer" }),
-      { source: "adzuna", source_id: `${TEST_MARKER}-4` }, // missing title/company/description/location -> Mongoose validation error
+      { source: "adzuna", source_id: `${TEST_MARKER}-4` }, // Missing fields fail validation
       remoteOkJob({ source_id: `${TEST_MARKER}-5`, title: "PHASE1G TEST QA Engineer" }),
     ]);
     for (const r of malformedBatch.results) {

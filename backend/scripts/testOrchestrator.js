@@ -1,15 +1,4 @@
-// Deterministic verification for the Phase 1H-1 ingestion orchestrator
-// (backend/services/ingestionOrchestrator.js). Every test here is fully
-// synthetic: no live HTTP calls to Adzuna/RemoteOK, and no MongoDB
-// connection is opened or required — adapters' `fetch` functions are
-// stubbed via the orchestrator's `deps.registry` injection seam, and the
-// persistence layer's `persistJobs` is stubbed via `deps.persist`. Real
-// (unmocked) normalization and classification functions are used
-// throughout, since they are already pure/deterministic and this is
-// exactly what proves the orchestrator wires the real Phase 1E/1F
-// modules correctly.
-//
-// Run via: node backend/scripts/testOrchestrator.js
+// Orchestrator verification, fully synthetic
 
 import fs from "node:fs";
 import path from "node:path";
@@ -37,11 +26,7 @@ function check(label, condition) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Fixtures — synthetic, hand-built, shaped after the real documented raw
-// structures from PHASE_1D_REPORT.md/JOB_API_DATA_REPORT.md. Not real
-// scraped listings.
-// ---------------------------------------------------------------------------
+// Synthetic fixtures
 
 function adzunaRawJob(overrides = {}) {
   return {
@@ -79,9 +64,7 @@ function remoteOkRawJob(overrides = {}) {
   };
 }
 
-// Mocked adapter `fetch` functions — same return shape as the real Phase
-// 1D adapters (adapterResult.js's success()/failure()), but synchronous
-// canned data instead of a real HTTP call.
+// Mocked adapter fetch functions
 function mockFetchOk(source, jobs, metaExtra = {}) {
   return async () => ({ ok: true, source, jobs, meta: { mocked: true, ...metaExtra }, error: null, fetchedAt: new Date() });
 }
@@ -94,10 +77,7 @@ function mockFetchThrows(message) {
   };
 }
 
-// Mocked persistence layer — stands in for persistJobs (Phase 1G) so
-// these tests never need a live MongoDB connection. Records every call
-// so tests can assert the orchestrator actually delegates to it (rather
-// than reimplementing persistence itself) and passes it the right data.
+// Mocked persistence layer
 function makePersistSpy(cannedResultFn) {
   const calls = [];
   async function persist(jobs) {
@@ -108,10 +88,7 @@ function makePersistSpy(cannedResultFn) {
   return persist;
 }
 
-// Default canned persistence outcome: pretend every classified job was
-// freshly inserted, no duplicates, no errors — good enough for tests that
-// aren't specifically exercising persistence-outcome plumbing (that's
-// test 5, which supplies its own canned result).
+// Default canned persistence outcome
 function defaultCannedPersist(jobs) {
   return {
     summary: {
@@ -357,10 +334,7 @@ console.log("\n[T9] The existing Phase 1G persistence layer is used, not duplica
   check("orchestrator never calls findOneAndUpdate itself", !/findOneAndUpdate/.test(source));
   check("orchestrator never calls upsertClassifiedJob directly (only through persistJobs)", !/upsertClassifiedJob\s*\(/.test(source));
 
-  // Runtime confirmation: the default (non-test) code path really does
-  // delegate to whatever function is passed as `persist`, proving the
-  // production default (persistJobs) is what actually executes, not a
-  // second, orchestrator-owned implementation.
+  // Default path delegates to persist
   const persist = makePersistSpy(defaultCannedPersist);
   const registry = { adzuna: { fetch: mockFetchOk("adzuna", [adzunaRawJob()]), normalize: normalizeAdzunaJob } };
   await runSourceIngestion("adzuna", {}, { registry, persist });

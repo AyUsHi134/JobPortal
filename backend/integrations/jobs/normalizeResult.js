@@ -1,9 +1,4 @@
-// Shared result convention for normalization, mirroring the adapter-level
-// success()/failure() convention from adapterResult.js so the two layers
-// feel consistent. Normalizers never throw for bad input — a malformed
-// raw job produces a `fail()` result, not an exception, so a caller
-// processing many raw jobs (via normalizeBatch below) never has one bad
-// record crash the rest.
+// Shared normalization result convention
 
 export function ok(job) {
   return { ok: true, job, error: null };
@@ -13,9 +8,7 @@ export function fail(reason, rawJob) {
   return { ok: false, job: null, error: { reason }, raw: rawJob };
 }
 
-// Runs normalizeFn over every raw job, separating successes from
-// failures. A single malformed record is captured in `failed` and does
-// not stop the rest of the batch from being processed.
+// Normalizes batch, separates failures
 export function normalizeBatch(rawJobs, normalizeFn) {
   const normalized = [];
   const failed = [];

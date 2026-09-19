@@ -1,26 +1,4 @@
-// Deterministic verification for the Phase 1I-5 audit fixes to
-// POST /api/jobs, PUT /api/jobs/:id, and DELETE /api/jobs/:id:
-//   - MongoDB update-operator injection prevention (a client could
-//     previously smuggle raw Mongo operators like $unset/$rename through
-//     PUT /api/jobs/:id's request body, since it was forwarded directly
-//     as the update document)
-//   - mass-assignment prevention on job creation/update (internal/
-//     lifecycle fields — status, dedup_fingerprint, source, source_id,
-//     expires_at, hiring_stage, last_seen_at — are no longer directly
-//     client-settable)
-//   - response shape consistency with GET /api/jobs / GET /api/jobs/:id
-//     (the same {success, data} envelope and public field whitelist,
-//     instead of the raw Mongoose document)
-//   - id validation, and safe try/catch error handling (previously these
-//     three handlers had none at all)
-//
-// No MongoDB connection is opened and no live HTTP server is started —
-// controllers/jobs.js's `deps` injection seam (the same pattern already
-// used for listJobs/getJob) supplies mocked jobService behavior, and
-// jobService.pickManualJobFields (a pure function) is exercised directly
-// to prove the field-whitelisting/injection-prevention claim precisely.
-//
-// Run via: node backend/scripts/testJobMutationSecurity.js
+// Job mutation security verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -100,7 +78,7 @@ console.log("\n[M2] pickManualJobFields strips internal/lifecycle fields (mass-a
     title: "Real Job",
     company: "Acme",
     description: "desc",
-    // Fields a client should NEVER be able to set directly:
+    // Fields clients must never set
     status: "expired",
     dedup_fingerprint: "fake-fingerprint-to-collide-with-a-real-job",
     source: "adzuna",
@@ -124,11 +102,7 @@ console.log("\n[M2] pickManualJobFields strips internal/lifecycle fields (mass-a
 // ---------------------------------------------------------------------------
 console.log("\n[M3] pickManualJobFields strips raw MongoDB update operators (injection prevention)");
 {
-  // This is the exact shape of a MongoDB update-operator-injection
-  // attempt: previously, PUT /api/jobs/:id forwarded req.body directly
-  // as Job.findByIdAndUpdate's update document, so a body shaped like
-  // this would have been interpreted by MongoDB as real operators, not
-  // literal field values.
+  // Operator-injection attempt shape
   const injectionAttempt = {
     title: "Legit-looking title",
     $unset: { status: "" },
@@ -170,7 +144,7 @@ console.log("\n[M4] toPublicJob exposes only the public whitelist, never interna
     status: "active",
     source: "manual",
     source_id: undefined,
-    // Internal fields that must NEVER appear in the public shape:
+    // Internal fields never public
     dedup_fingerprint: "abc123",
     hiring_stage: "final",
     last_seen_at: new Date(),

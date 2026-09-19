@@ -5,25 +5,14 @@ function isValidObjectId(id) {
   return typeof id === "string" && mongoose.Types.ObjectId.isValid(id);
 }
 
-// Strips the password hash from a Mongoose document before it's ever
-// sent in a response. `updateProfile` previously sent the raw document
-// straight back (`res.json(user)`), which included the bcrypt hash.
+// Strips password hash from responses
 function sanitizeUser(userDoc) {
   const obj = typeof userDoc.toObject === "function" ? userDoc.toObject() : { ...userDoc };
   delete obj.password;
   return obj;
 }
 
-/**
- * All four handlers below follow the same `deps`-injection factory
- * pattern already established in controllers/jobs.js, so
- * backend/scripts/testAuthorization.js / testSaveJobs.js can exercise
- * them deterministically (a mocked User model, no MongoDB connection,
- * no real user data touched) while production continues to use the
- * default-configured exports unchanged. Every one of these routes runs
- * behind `authMiddleware` (routes/user.js) — `req.user.id` is always the
- * verified JWT subject, never a client-suppliable id.
- */
+/** Handlers use injectable deps factory */
 export function createGetProfileHandler(deps = {}) {
   const UserModel = deps.User || User;
 
@@ -46,9 +35,7 @@ export function createUpdateProfileHandler(deps = {}) {
   return async function updateProfile(req, res) {
     try {
       const { name, email } = req.body;
-      // Always the authenticated caller's own document — a user can
-      // never modify another user's profile by supplying a different id
-      // in the request body; there is no id in the request this reads.
+      // Always caller's own profile
       const user = await UserModel.findById(req.user.id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -58,10 +45,7 @@ export function createUpdateProfileHandler(deps = {}) {
 
       res.json(sanitizeUser(user));
     } catch (err) {
-      // User.email has a unique index — a duplicate produces a Mongo
-      // E11000 error, which previously would have been an uncaught
-      // rejection (no try/catch existed at all). Reported as a clean 400
-      // rather than a raw driver error leaking to the client.
+      // Duplicate email returns clean 400
       if (err.code === 11000) {
         return res.status(400).json({ error: "Email already in use." });
       }
@@ -82,19 +66,11 @@ export function createSaveJobHandler(deps = {}) {
         return res.status(400).json({ error: "Invalid job ID." });
       }
 
-      // Previously took `userId` straight from req.body — any
-      // authenticated (or even unauthenticated, since this route wasn't
-      // behind authMiddleware at all) caller could save a job onto ANY
-      // other user's account by supplying their id. The owner is now
-      // always req.user.id, the verified JWT subject.
+      // Owner is always req.user.id
       const user = await UserModel.findById(req.user.id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // .includes() on a MongooseArray of ObjectIds vs. a plain jobId
-      // string never matches by value (reference/strict equality only),
-      // so the old dedup check silently never worked — fixed alongside
-      // the authorization change since this line had to be rewritten
-      // anyway. See PHASE_1I4_REPORT.md §5.
+      // Compare ids as strings
       if (!user.savedJobs.some((id) => id.toString() === jobId)) {
         user.savedJobs.push(jobId);
         await user.save();
@@ -118,8 +94,7 @@ export function createIsJobSavedHandler(deps = {}) {
         return res.status(400).json({ error: "Invalid job ID." });
       }
 
-      // Same fix as saveJob: always the authenticated caller's own
-      // saved-jobs list, never an arbitrary `userId` from the request.
+      // Always caller's own saved jobs
       const user = await UserModel.findById(req.user.id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -143,14 +118,11 @@ export function createUnsaveJobHandler(deps = {}) {
         return res.status(400).json({ error: "Invalid job ID." });
       }
 
-      // Same identity rule as saveJob/isJobSaved: always the authenticated
-      // caller's own saved-jobs list (req.user.id, the verified JWT
-      // subject), never a client-suppliable id.
+      // Always caller's own saved jobs
       const user = await UserModel.findById(req.user.id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      // Idempotent: removing a job that isn't in the list is a no-op,
-      // not an error — filter() already handles "not present" safely.
+      // Idempotent; missing job is no-op
       user.savedJobs = user.savedJobs.filter((id) => id.toString() !== jobId);
       await user.save();
 

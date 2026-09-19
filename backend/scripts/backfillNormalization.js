@@ -1,56 +1,4 @@
-// One-off backfill: re-applies the SAME text-cleanup and title-rejection
-// logic the live ingestion normalizers already use (decodeHtmlEntities,
-// repairMojibake, isPlaceholderOrGarbledTitle — all imported from
-// integrations/jobs/normalizationHelpers.js, none reimplemented here) to
-// every EXISTING Job document, not just newly-(re-)ingested ones.
-//
-// Why this exists: normalization only ever runs at ingestion time. A
-// record inserted before a normalization fix existed, or a manually
-// created job (source: "manual", which never runs through the normalizer
-// at all), keeps its original, uncleaned text forever unless the exact
-// same {source, source_id} happens to be re-fetched by a later scheduled
-// run. This script is the one-time catch-up pass for everything already
-// sitting in MongoDB. This is a plain script, not a route/service — it is
-// never imported or run automatically by the application.
-//
-// What it does, per document:
-//   - Cleans title/company/description/location.{raw,display_name,city,
-//     state,country} through decodeHtmlEntities(repairMojibake(value)) —
-//     the exact same order the normalizers already apply. Both helpers
-//     pass a non-string (including null) straight through unchanged, so
-//     this is safe on every field, including the location subfields that
-//     are frequently null.
-//   - Computes `language` via classifyLanguage (same function classifyJob
-//     already calls during ingestion), against the CLEANED title/
-//     description — mirroring production's normalize-then-classify order.
-//     Only written if it differs from what the document already has.
-//   - Re-checks the CLEANED title with isPlaceholderOrGarbledTitle. If it
-//     now fails (a placeholder/garbled/likely-non-English title), the job
-//     is suppressed by setting status: "removed" — reusing the existing
-//     Job.status enum, not a new field. The document's other text fields
-//     are left exactly as they were (this is a soft, reversible
-//     suppression, not a delete/rewrite of a record being suppressed
-//     anyway) — `language` is still corrected in this same branch, since
-//     it's an independent, orthogonal tag, not a "text field."
-//   - Otherwise, only the fields that actually changed (text fields and/or
-//     language) are written via a targeted $set — a document that's
-//     already fully clean and correctly tagged produces no write at all.
-//
-// jobService.searchJobs (via buildJobFilter) and jobService.getActiveJobById
-// already filter to status: "active" (confirmed by reading
-// backend/services/jobService.js, and re-asserted at runtime below before
-// any write happens), so a job flagged "removed" here is immediately
-// excluded from both the public listing and detail endpoints with no
-// further code change required.
-//
-// Safety: read-then-targeted-write only, one Job.updateOne({_id}, {$set})
-// per document that actually needs a change — no deleteMany, no
-// dropCollection, no unconditional bulk write. One document's write/
-// validation error is caught and counted, never aborting the rest of the
-// run. Uses the same backend/.env MONGO_URI every other
-// backend/scripts/*.js file uses.
-//
-// Run via: node backend/scripts/backfillNormalization.js
+// One-off backfill of existing jobs
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,10 +27,7 @@ async function main() {
   await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 15000 });
   console.log("Connected to MongoDB.\n");
 
-  // Confirms, against the real current jobService (not from memory), the
-  // read-path guarantee this script's whole "removed is enough to hide a
-  // job" approach depends on. Aborts before writing anything if it no
-  // longer holds, rather than silently relying on a stale assumption.
+  // Verifies removed jobs stay hidden
   const defaultFilter = jobService.buildJobFilter({});
   if (defaultFilter.status !== "active") {
     throw new Error(
@@ -169,7 +114,7 @@ main().catch(async (err) => {
   try {
     await mongoose.disconnect();
   } catch {
-    // already disconnected or never connected — nothing further to do
+    // Already disconnected, nothing to do
   }
   process.exitCode = 1;
 });

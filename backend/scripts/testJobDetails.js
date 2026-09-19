@@ -1,11 +1,4 @@
-// Deterministic verification for the Phase 1I-3 Job Detail endpoint,
-// `GET /api/jobs/:id`. No MongoDB connection is opened and no live HTTP
-// server is started — the controller's `deps.getActiveJobById` injection
-// seam (the same established pattern used by `createListJobsHandler` in
-// Phase 1I-1/1I-2) supplies fixture data or simulated failures, and a
-// minimal fake Express `res` object records what the handler sends.
-//
-// Run via: node backend/scripts/testJobDetails.js
+// Job detail endpoint verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -49,10 +42,7 @@ function fakeReq(id) {
 
 const VALID_ID = "60f7c2b5c1234567890000aa"; // well-formed 24-char hex ObjectId string
 
-// The exact public shape jobService.getActiveJobById is expected to
-// return (already field-whitelisted + status-filtered by the service —
-// this fixture represents that post-query, post-.select() result, not a
-// raw Mongo document).
+// Expected public job shape
 function activeJobDetailFixture(overrides = {}) {
   return {
     _id: VALID_ID,
@@ -158,9 +148,7 @@ console.log("\n[D2] Returned object contains the expected normalized structured 
 // ---------------------------------------------------------------------------
 console.log("\n[D3] Public-field whitelist prevents internal fields from leaking");
 {
-  // (a) Behavioral: the controller passes the service's result straight
-  // through with no additions — if the service (which does the actual
-  // field selection) returns only whitelisted keys, so does the response.
+  // Controller passes result through
   const fixture = activeJobDetailFixture();
   const handler = createGetJobHandler({ getActiveJobById: async () => fixture });
   const res = fakeRes();
@@ -172,10 +160,7 @@ console.log("\n[D3] Public-field whitelist prevents internal fields from leaking
     check(`internal field "${field}" is not present on the returned job`, !(field in res.body.data));
   }
 
-  // (b) Static: the service itself only ever selects the same whitelist
-  // the listing endpoint uses (PUBLIC_LISTING_FIELDS) — proving the
-  // whitelist is enforced at the query layer, not just accidentally
-  // absent from this test's fixture.
+  // Service uses same whitelist
   const serviceSource = fs.readFileSync(path.resolve(__dirname, "../services/jobService.js"), "utf8");
   check(
     "jobService.getActiveJobById selects PUBLIC_LISTING_FIELDS (the same whitelist the listing endpoint uses)",
@@ -227,19 +212,14 @@ console.log("\n[D5] A malformed/invalid MongoDB id returns 400 without ever quer
     check(`"${badId}" → the service is never called (rejected before any DB lookup)`, calls === 0);
   }
 
-  // Control case: a well-formed id must NOT be rejected by the same check.
+  // Control: valid id accepted
   check("a well-formed 24-char hex id is considered valid by mongoose.Types.ObjectId.isValid", mongoose.Types.ObjectId.isValid(VALID_ID));
 }
 
 // ---------------------------------------------------------------------------
 console.log("\n[D6] An inactive (or legacy status-less) job is never exposed through this endpoint");
 {
-  // jobService.getActiveJobById's own Mongo query restricts to
-  // status:"active" (verified statically below) — so from the
-  // controller's perspective, a real-but-inactive job and a genuinely
-  // nonexistent job are indistinguishable (both resolve to `null`), and
-  // both correctly produce a 404 rather than ever exposing the job or
-  // revealing that an inactive job exists at that id.
+  // Inactive and missing both 404
   const handler = createGetJobHandler({ getActiveJobById: async () => null });
   const res = fakeRes();
   await handler(fakeReq(VALID_ID), res);
@@ -332,19 +312,14 @@ console.log("\n[D11] Existing job CRUD behavior outside this phase's scope is un
   const routeSource = fs.readFileSync(path.resolve(__dirname, "../routes/job.js"), "utf8");
   const controllerSource = fs.readFileSync(path.resolve(__dirname, "../controllers/jobs.js"), "utf8");
 
-  // routes/job.js's write routes (POST/PUT/DELETE) were INTENTIONALLY
-  // changed by Phase 1I-4 to require authMiddleware — previously fully
-  // unauthenticated. See PHASE_1I4_REPORT.md and testAuthorization.js.
+  // Write routes now require auth
   check("routes/job.js still imports the same 5 handlers plus authMiddleware", /listJobs,\s*getJob,\s*createJob,\s*updateJob,\s*removeJob/.test(routeSource) && /import authMiddleware from ["']\.\.\/middleware\/auth\.js["']/.test(routeSource));
   check("GET /:id still wired to getJob (public, unchanged)", /router\.get\(\s*["']\/:id["']\s*,\s*getJob\s*\)/.test(routeSource));
   check("POST / still resolves to createJob (now behind authMiddleware)", /router\.post\(\s*["']\/["']\s*,\s*authMiddleware\s*,\s*createJob\s*\)/.test(routeSource));
   check("PUT /:id still resolves to updateJob (now behind authMiddleware)", /router\.put\(\s*["']\/:id["']\s*,\s*authMiddleware\s*,\s*updateJob\s*\)/.test(routeSource));
   check("DELETE /:id still resolves to removeJob (now behind authMiddleware)", /router\.delete\(\s*["']\/:id["']\s*,\s*authMiddleware\s*,\s*removeJob\s*\)/.test(routeSource));
 
-  // createJob/updateJob's response shape and error handling were
-  // INTENTIONALLY changed by Phase 1I-5 — see testJobListing.js's [L7]
-  // block and PHASE_1I5_REPORT.md for the full reasoning; dedicated
-  // coverage lives in testJobMutationSecurity.js.
+  // Write responses intentionally changed
   check("removeJob's 204 behavior is unchanged", /removeJob[\s\S]*?res\.status\(204\)\.send\(\)/.test(controllerSource));
   check("jobService.getJobById(id) (raw fetch, used by ingestion tests) is still present and untouched", /export async function getJobById\(id\) \{\s*return Job\.findById\(id\);\s*\}/.test(fs.readFileSync(path.resolve(__dirname, "../services/jobService.js"), "utf8")));
 }

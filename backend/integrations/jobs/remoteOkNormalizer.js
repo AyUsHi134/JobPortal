@@ -9,19 +9,7 @@ import {
   isPlaceholderOrGarbledTitle,
 } from "./normalizationHelpers.js";
 
-/**
- * Converts one raw RemoteOK job (as returned by fetchRemoteOKJobs — see
- * backend/integrations/jobs/remoteOkAdapter.js) into the normalized shape
- * approved in JOB_SCHEMA_DESIGN.md. Returns { ok:true, job } on success,
- * or { ok:false, error, raw } if the raw job is missing data essential
- * to producing a valid normalized record.
- *
- * RemoteOK's `tags` are preserved as raw pass-through data only — they
- * are explicitly NOT treated as a technology/skill classification here
- * (see JOB_API_DATA_REPORT.md §3/§8: naive tag matching produced
- * confirmed false positives). is_tech_relevant/experience_level are left
- * at their approved defaults; that judgment belongs to Phase 1F.
- */
+/** Normalizes one raw RemoteOK job */
 export function normalizeRemoteOKJob(rawJob) {
   if (!rawJob || typeof rawJob !== "object") {
     return fail("Raw RemoteOK job is missing or not an object.", rawJob);
@@ -30,8 +18,7 @@ export function normalizeRemoteOKJob(rawJob) {
   const title = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.position)));
   const company = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.company)));
   const description = nonEmptyString(decodeHtmlEntities(repairMojibake(rawJob.description)));
-  // Prefer the numeric id; fall back to slug (both confirmed stable per
-  // JOB_API_DATA_REPORT.md §3 and JOB_SCHEMA_DESIGN.md §5).
+  // Prefer numeric id, else slug
   const sourceId =
     nonEmptyString(rawJob.id != null ? String(rawJob.id) : null) ||
     nonEmptyString(rawJob.slug);
@@ -65,37 +52,33 @@ export function normalizeRemoteOKJob(rawJob) {
 
     location: {
       raw: locationRaw,
-      // RemoteOK gives no structured city/state/country — never guessed
-      // from the freeform string (JOB_SCHEMA_DESIGN.md §5).
+      // No structured location available
       display_name: locationRaw,
       city: null,
       state: null,
       country: null,
     },
 
-    tags, // raw pass-through only — not a tech/skill classification
-    normalized_skills: [], // derived in a later phase, not built here
+    tags, // Raw tags only
+    normalized_skills: [], // Derived later
 
     salary: {
       min: salaryValueOrNull(rawJob.salary_min),
       max: salaryValueOrNull(rawJob.salary_max),
       currency: null, // not reliably provided by RemoteOK
-      is_estimated: null, // RemoteOK has no equivalent to Adzuna's salary_is_predicted
+      is_estimated: null, // No salary_is_predicted equivalent
     },
 
-    // RemoteOK has no dedicated field, and employment-type words loosely
-    // embedded in `tags` are not reliable enough to promote to a real
-    // value (JOB_SCHEMA_DESIGN.md §5) — never derived from tags.
+    // Never derived from tags
     job_type: "unknown",
 
-    // RemoteOK is a remote-only job board by definition — hardcoded true
-    // for every RemoteOK-sourced job, per JOB_SCHEMA_DESIGN.md §5.
+    // Always remote for RemoteOK
     is_remote: true,
 
     experience_level: "unknown", // Phase 1F
     is_tech_relevant: null, // Phase 1F
     tech_relevance_source: "unclassified", // Phase 1F
-    source_category: null, // RemoteOK has no equivalent to Adzuna's category
+    source_category: null, // No category equivalent
 
     logo: nonEmptyString(rawJob.logo) || nonEmptyString(rawJob.company_logo) || "",
 
@@ -103,9 +86,7 @@ export function normalizeRemoteOKJob(rawJob) {
     source_id: sourceId,
   };
 
-  // Same reasoning as the Adzuna normalizer: omitted (not null) when
-  // unparseable, so the schema's own Date.now default can still apply
-  // later without normalization having fabricated anything.
+  // Omit unparseable date, never null
   const datePosted = toDateOrNull(rawJob.date) || epochSecondsToDateOrNull(rawJob.epoch);
   if (datePosted) job.date_posted = datePosted;
 

@@ -1,16 +1,6 @@
 import { createHash } from "node:crypto";
 
-// Implements the fallback cross-source duplicate signal exactly as
-// specified in JOB_SCHEMA_DESIGN.md §7: a hash of
-// normalize(title) + "|" + normalize(company) + "|" + normalize(location.city || location.raw),
-// where normalize() lowercases, trims, and collapses whitespace. This is
-// deliberately a SOFT signal, never a hard uniqueness constraint — the
-// {source, source_id} compound key remains the only authoritative
-// identity (see backend/models/Job.js's partial unique index).
-//
-// SHA-256 is used and truncated to 16 hex characters (64 bits) — more
-// than enough collision resistance for a soft duplicate-review signal at
-// this project's scale, while keeping the stored/indexed value small.
+// Soft duplicate fingerprint hash
 
 function normalizeForFingerprint(value) {
   if (typeof value !== "string") return "";

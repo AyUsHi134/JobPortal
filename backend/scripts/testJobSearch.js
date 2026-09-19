@@ -1,13 +1,4 @@
-// Deterministic verification for the Phase 1I-2 job search/filter/sort/
-// pagination extension to GET /api/jobs. No MongoDB connection is opened
-// and no live HTTP server is started — this exercises the pure query-
-// parsing (`parseListJobsQuery`), pure filter-building (`buildJobFilter`),
-// and handler-assembly logic directly and in isolation, plus the
-// controller's `deps.searchJobs` injection seam for end-to-end response
-// shape checks. No live Adzuna/RemoteOK/MongoDB call is made anywhere in
-// this file.
-//
-// Run via: node backend/scripts/testJobSearch.js
+// Search/filter/sort verification, no DB
 
 import fs from "node:fs";
 import path from "node:path";
@@ -109,7 +100,7 @@ console.log("\n[2b] Keyword search input is safely escaped — no unsafe regex c
   const start = Date.now();
   const pathological = "a".repeat(40) + "!";
   const filterPathological = buildJobFilter({ q: pathological });
-  const target = "a".repeat(40) + "b".repeat(40); // deliberately does not match, forcing full scan of the pattern
+  const target = "a".repeat(40) + "b".repeat(40); // Deliberately no match
   filterPathological.$or[0].title.test(target);
   const elapsedMs = Date.now() - start;
   check("a classically ReDoS-shaped input completes near-instantly once escaped (no catastrophic backtracking)", elapsedMs < 500);
@@ -211,9 +202,7 @@ console.log("\n[8] Multiple filters combine correctly (AND semantics), including
   const filter = buildJobFilter(parsed.options);
   check("all five filters are present simultaneously", filter.status === "active" && filter.experience_level === "senior" && filter.is_tech_relevant === true && filter.is_remote === true && filter.source === "remoteok" && filter["location.country"] instanceof RegExp);
 
-  // q AND location both produce their own $or clause — a plain object can
-  // only hold one $or key, so this specifically verifies they're combined
-  // via $and rather than one silently overwriting the other.
+  // Combined via $and, not overwritten
   const combinedParsed = parseListJobsQuery({ q: "developer", location: "pune" }, EXPERIENCE_LEVEL_VALUES);
   const combinedFilter = buildJobFilter(combinedParsed.options);
   check("q + location together produce $and (not a lost/overwritten $or)", Array.isArray(combinedFilter.$and) && combinedFilter.$and.length === 2);

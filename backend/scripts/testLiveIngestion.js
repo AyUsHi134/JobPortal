@@ -1,33 +1,4 @@
-// Phase 1H-4 — controlled LIVE end-to-end ingestion verification.
-//
-// Unlike every other test*.js script in this directory, this one is NOT
-// deterministic and DOES make real live calls: one real Adzuna API call,
-// one real RemoteOK API call (both made exactly once, through the
-// existing production orchestrator — backend/services/ingestionOrchestrator.js
-// — never bypassed for the main run), and real reads/writes against the
-// live MongoDB Atlas `jobportal` database using the existing, unmodified
-// Phase 1G persistence path.
-//
-// Safety discipline:
-//   - The MAIN run uses the orchestrator's real default registry (no
-//     mocked fetch) exactly once per source — never called in a loop,
-//     never retried beyond the existing bounded Phase 1H-3 retry policy.
-//   - Every job the main run inserts/updates is real, legitimate
-//     JobPortal data and is NEVER deleted by this script.
-//   - Only clearly-marked synthetic records (source_id prefixed
-//     `phase1h4-<subtest>-<timestamp>`) created for the fingerprint-
-//     collision check are deleted, via targeted deleteOne({_id}) calls,
-//     immediately after that specific check. No deleteMany/drop is used
-//     anywhere in this file.
-//   - The malformed-job check stubs only the network fetch step (no live
-//     call) while still exercising the real normalizer/classifier/
-//     persistence path against the real DB.
-//   - The scheduler (backend/services/ingestionScheduler.js) is never
-//     imported/started here — the orchestrator is invoked directly,
-//     exactly once, deliberately avoiding any risk of a second real
-//     ingestion run or waiting on a real cron interval.
-//
-// Run via: node backend/scripts/testLiveIngestion.js
+// Live end-to-end ingestion verification
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -104,7 +75,7 @@ async function main() {
     finalCount - initialCount === mainResult.totals.insertedCount
   );
 
-  // --- Sample real persisted docs per source that actually succeeded ---
+  // Sample persisted docs
   const samples = {};
   for (const s of mainResult.sources) {
     if (!s.fetchOk) continue;
@@ -147,7 +118,7 @@ async function main() {
     check("remoteok sample: source identity preserved (source === 'remoteok' for all)", samples.remoteok.every((d) => d.source === "remoteok"));
   }
 
-  // --- Honest classification distribution across everything this run touched (not just the small sample) ---
+  // Classification distribution
   console.log("\n============================");
   console.log(" CLASSIFICATION DISTRIBUTION — ALL docs touched by this run (honest counts, not fabricated)");
   console.log("============================");
@@ -162,7 +133,7 @@ async function main() {
     console.log("No source succeeded in this run — nothing to distribute over. Not fabricating a distribution.");
   }
 
-  // --- Idempotency check on ONE real ingested job ---
+  // Idempotency check
   console.log("\n============================");
   console.log(" IDEMPOTENCY CHECK — replay one real ingested job through the existing persistence path");
   console.log("============================");
@@ -175,10 +146,7 @@ async function main() {
     const beforeLastSeenMs = new Date(original.last_seen_at).getTime();
     const beforeId = String(original._id);
 
-    // Reconstructs the exact classified-job shape jobService.upsertClassifiedJob
-    // expects, from the REAL persisted document's own current field values —
-    // this is "the existing persistence path", replayed with the identical
-    // {source, source_id} identity, with no second live API call required.
+    // Replay persistence with real document
     const replay = {
       title: original.title,
       company: original.company,
@@ -210,7 +178,7 @@ async function main() {
     check("last_seen_at advanced on replay", afterDoc.last_seen_at.getTime() > beforeLastSeenMs);
   }
 
-  // --- Cross-source fingerprint collision check (controlled synthetic pair, fully cleaned up) ---
+  // Fingerprint collision check
   console.log("\n============================");
   console.log(" CROSS-SOURCE FINGERPRINT COLLISION CHECK — controlled synthetic pair, cleaned up immediately after");
   console.log("============================");
@@ -254,7 +222,7 @@ async function main() {
     check("fingerprint-collision synthetic test records were fully cleaned up (targeted deleteOne only)", leftover === 0);
   }
 
-  // --- Malformed-job rejection check, through the orchestrator, fetch stubbed (no live API call) ---
+  // Malformed-job rejection check
   console.log("\n============================");
   console.log(" MALFORMED-JOB REJECTION CHECK — through the orchestrator; fetch stubbed (no extra live API call); real normalize+classify+persist");
   console.log("============================");
@@ -302,7 +270,7 @@ main().catch(async (err) => {
   try {
     await mongoose.disconnect();
   } catch {
-    // already disconnected or never connected — nothing further to do
+    // Already disconnected, nothing to do
   }
   process.exitCode = 1;
 });

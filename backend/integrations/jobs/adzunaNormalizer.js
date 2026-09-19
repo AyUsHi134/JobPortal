@@ -9,20 +9,7 @@ import {
   isPlaceholderOrGarbledTitle,
 } from "./normalizationHelpers.js";
 
-/**
- * Converts one raw Adzuna job (as returned by fetchAdzunaJobs — see
- * backend/integrations/jobs/adzunaAdapter.js) into the normalized shape
- * approved in JOB_SCHEMA_DESIGN.md. Returns { ok:true, job } on success,
- * or { ok:false, error, raw } if the raw job is missing data essential
- * to producing a valid normalized record — it never throws and never
- * invents a value the source didn't actually provide.
- *
- * Does NOT set is_tech_relevant, experience_level beyond their approved
- * defaults (Phase 1F), does NOT compute dedup_fingerprint (deduplication
- * is out of scope here), and does NOT set last_seen_at/status/createdAt/
- * updatedAt — those are ingestion-lifecycle concerns owned by
- * jobService.upsertJobBySource, not by normalization.
- */
+/** Normalizes one raw Adzuna job */
 export function normalizeAdzunaJob(rawJob) {
   if (!rawJob || typeof rawJob !== "object") {
     return fail("Raw Adzuna job is missing or not an object.", rawJob);
@@ -56,10 +43,7 @@ export function normalizeAdzunaJob(rawJob) {
     return fail(`Adzuna raw job title rejected as placeholder/garbled: "${title}".`, rawJob);
   }
 
-  // Confirmed live (ADZUNA_LIVE_TEST.md §6) for India-scoped queries:
-  // location.area is [country, state, city]. Not assumed for other
-  // countries/queries — just defensively read positionally with a
-  // fallback to null for any missing slot.
+  // India area: country, state, city
   const area = rawJob.location && Array.isArray(rawJob.location.area) ? rawJob.location.area : [];
   const country = nonEmptyString(decodeHtmlEntities(repairMojibake(area[0])));
   const state = nonEmptyString(decodeHtmlEntities(repairMojibake(area[1])));
@@ -67,8 +51,7 @@ export function normalizeAdzunaJob(rawJob) {
 
   const salaryMin = salaryValueOrNull(rawJob.salary_min);
   const salaryMax = salaryValueOrNull(rawJob.salary_max);
-  // salary_is_predicted only means something if a salary actually exists;
-  // Adzuna sends it as the string "0"/"1" (confirmed live).
+  // Predicted flag needs salary
   const isEstimated =
     salaryMin == null && salaryMax == null
       ? null
@@ -90,25 +73,20 @@ export function normalizeAdzunaJob(rawJob) {
       country,
     },
 
-    tags: [], // Adzuna provides no tags array (JOB_SCHEMA_DESIGN.md §4)
-    normalized_skills: [], // derived in a later phase, not built here
+    tags: [], // No tags from Adzuna
+    normalized_skills: [], // Derived later
 
     salary: {
       min: salaryMin,
       max: salaryMax,
-      currency: null, // not reliably provided by Adzuna — JOB_SCHEMA_DESIGN.md §13.1
+      currency: null, // Not provided by Adzuna
       is_estimated: isEstimated,
     },
 
-    // Only the value actually observed live (JOB_API_DATA_REPORT... /
-    // ADZUNA_LIVE_TEST.md: "full_time" on ~80% of sampled jobs) is passed
-    // through as-is; anything else Adzuna sends is preserved verbatim
-    // rather than forced into an invented taxonomy. Absent -> "unknown".
+    // Pass observed value through
     job_type: nonEmptyString(rawJob.contract_time) || "unknown",
 
-    // No dedicated remote field from Adzuna. true only on an explicit
-    // "remote" mention in the location text; never false, since Adzuna
-    // gives no reliable "confirmed on-site" signal at all.
+    // True only on explicit remote
     is_remote: looksRemoteFromText(locationDisplay) ? true : null,
 
     experience_level: "unknown", // Phase 1F
@@ -122,11 +100,7 @@ export function normalizeAdzunaJob(rawJob) {
     source_id: sourceId,
   };
 
-  // date_posted deliberately omitted (left undefined) rather than set to
-  // null when unparseable: the schema's own `default: Date.now` only
-  // applies when the key is absent, not when it's explicitly null. This
-  // way normalization never fabricates a date, but also never blocks the
-  // schema's already-approved fallback from working correctly later.
+  // Omit unparseable date, never null
   const datePosted = toDateOrNull(rawJob.created);
   if (datePosted) job.date_posted = datePosted;
 

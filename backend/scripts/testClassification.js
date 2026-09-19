@@ -1,10 +1,4 @@
-// Deterministic, fixture-based verification for the Phase 1F
-// classification layer. No live API calls, no MongoDB connection, no
-// jobService — imports only the pure classification functions and runs
-// them against small, synthetic (non-real) sample objects shaped like
-// Phase 1E's normalized Job output.
-//
-// Run via: node backend/scripts/testClassification.js
+// Classification fixture-based verification
 
 import { classifyTechRelevance } from "../integrations/jobs/techRelevanceClassifier.js";
 import { classifyExperienceLevel } from "../integrations/jobs/experienceClassifier.js";
@@ -233,9 +227,7 @@ check("classifyJob({}) tech_relevance_source === unclassified", emptyResult.tech
 check("classifyJob({}) experience_level === unknown", emptyResult.experience_level === "unknown");
 check("classifyJob({}) normalized_skills === []", Array.isArray(emptyResult.normalized_skills) && emptyResult.normalized_skills.length === 0);
 
-// ---------------------------------------------------------------------
 // SUMMARY
-// ---------------------------------------------------------------------
 
 console.log("\n============================");
 console.log(` RESULT: ${passCount} passed, ${failCount} failed`);

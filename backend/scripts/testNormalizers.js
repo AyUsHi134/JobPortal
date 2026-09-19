@@ -1,11 +1,4 @@
-// Deterministic, fixture-based verification for the Phase 1E normalizers.
-// This script does NOT call any live API and does NOT connect to
-// MongoDB — it imports only the two pure normalization functions and
-// runs them against small, synthetic (non-real) sample objects shaped
-// like the real raw structures documented in JOB_API_DATA_REPORT.md,
-// ADZUNA_LIVE_TEST.md, and PHASE_1D_REPORT.md.
-//
-// Run via: node backend/scripts/testNormalizers.js
+// Normalizer fixture-based verification
 
 import { normalizeAdzunaJob } from "../integrations/jobs/adzunaNormalizer.js";
 import { normalizeRemoteOKJob } from "../integrations/jobs/remoteOkNormalizer.js";
@@ -37,10 +30,7 @@ function printSafeJob(job) {
   console.log("  " + JSON.stringify(safe));
 }
 
-// ---------------------------------------------------------------------
-// ADZUNA FIXTURES (synthetic — fictional company/id, shaped per
-// ADZUNA_LIVE_TEST.md's confirmed live field structure)
-// ---------------------------------------------------------------------
+// ADZUNA FIXTURES
 
 const adzunaComplete = {
   title: "Backend Developer (Node.js)",
@@ -93,7 +83,7 @@ const adzunaRemoteSignal = {
 };
 
 const adzunaMalformedMissingTitle = {
-  // no title, no company, no id
+  // No title, company, id
   description: "Some description",
 };
 
@@ -106,14 +96,7 @@ const adzunaEntityEncodedTitle = {
 delete adzunaEntityEncodedTitle.salary_min;
 delete adzunaEntityEncodedTitle.salary_max;
 
-// Mojibake fixtures: title/company as they actually arrive from a source
-// whose own data has UTF-8 bytes previously misread as Windows-1252 (see
-// PHASE_1H4_REPORT.md §9's live-observed example). "â€™" is the mangled
-// form of an apostrophe (U+2019); "Ã´" is the mangled form of "ô".
-// Deliberately NOT the CTA/site-chrome phrase used by the Task #2 fixtures
-// below ("Don't see your role? Apply here") — that phrase is now correctly
-// rejected as placeholder/garbled, which would confound this fixture's own
-// purpose of isolating mojibake *repair* in isolation from title *filtering*.
+// Mojibake fixtures, repair isolated
 const adzunaMojibakeTitleAndCompany = {
   ...adzunaComplete,
   id: "5900001242",
@@ -123,11 +106,7 @@ const adzunaMojibakeTitleAndCompany = {
 delete adzunaMojibakeTitleAndCompany.salary_min;
 delete adzunaMojibakeTitleAndCompany.salary_max;
 
-// Legitimate, already-correct accented text — must NOT be altered. Every
-// one of these contains a character in the same Unicode range mojibake
-// artifacts occupy (à-ï / Â-ß), which is exactly why they're chosen: they
-// prove the hint-pattern pre-filter alone isn't what protects real text —
-// the clean-round-trip check is what actually rejects these.
+// Correct accented text unchanged
 const adzunaLegitimateAccentedText = {
   ...adzunaComplete,
   id: "5900001243",
@@ -161,39 +140,28 @@ const adzunaBareTestTitle = {
   title: "Test",
 };
 
-// The confirmed live CTA/site-chrome fragment, already correctly
-// UTF-8-encoded (straight apostrophe) as a source might legitimately send it.
+// CTA fragment, correct encoding
 const adzunaCtaFragmentTitle = {
   ...adzunaComplete,
   id: "5900001245",
   title: "Don't see your role? Apply here",
 };
 
-// Same CTA fragment, but exactly as it would arrive from a source whose
-// data has the Task #1 mojibake corruption — proves the full pipeline
-// (repairMojibake -> isPlaceholderOrGarbledTitle) rejects it end-to-end,
-// not just the already-repaired form.
+// CTA fragment, mojibake form
 const adzunaCtaFragmentTitleMojibake = {
   ...adzunaComplete,
   id: "5900001246",
   title: "Donâ€™t see your role? Apply here",
 };
 
-// Legitimate titles that must NOT be rejected merely for containing
-// "test"/"hiring"/"apply"/"role" — the exact false-positive concerns this
-// task called out. None of these equal any PLACEHOLDER_TITLE_EXACT entry
-// or match either GARBLED_TITLE_PATTERNS regex.
+// Legitimate titles must not reject
 const adzunaLegitimateTestEngineer = { ...adzunaComplete, id: "5900001247", title: "Test Engineer" };
 const adzunaLegitimateHiringManager = { ...adzunaComplete, id: "5900001248", title: "Hiring Manager" };
 const adzunaLegitimateNowHiringManager = { ...adzunaComplete, id: "5900001249", title: "Now Hiring Manager" };
 const adzunaLegitimateReactRemote = { ...adzunaComplete, id: "5900001250", title: "React Developer - Remote" };
 const adzunaLegitimateSeniorBackend = { ...adzunaComplete, id: "5900001251", title: "Senior Backend Developer" };
 
-// Location mojibake fixtures (Task #3A) — display_name AND each area[]
-// slot independently mojibake-corrupted, proving the same repair already
-// applied to title/company (Task #1) now also reaches location fields.
-// The positional area mapping itself ([country, state, city]) is
-// unchanged — only the text inside each slot is repaired.
+// Location mojibake fixtures
 const adzunaLocationMojibake = {
   ...adzunaComplete,
   id: "5900001252",
@@ -205,9 +173,7 @@ const adzunaLocationMojibake = {
 delete adzunaLocationMojibake.salary_min;
 delete adzunaLocationMojibake.salary_max;
 
-// Already-correct accented location text — must remain byte-for-byte
-// unchanged (same conservative round-trip safety net Task #1 already
-// proved for title/company, now exercised on location).
+// Correct accented location unchanged
 const adzunaLocationLegitimateAccented = {
   ...adzunaComplete,
   id: "5900001253",
@@ -219,7 +185,7 @@ const adzunaLocationLegitimateAccented = {
 delete adzunaLocationLegitimateAccented.salary_min;
 delete adzunaLocationLegitimateAccented.salary_max;
 
-// HTML entities in location text must be decoded, same as title/company.
+// Location HTML entities decoded
 const adzunaLocationHtmlEntities = {
   ...adzunaComplete,
   id: "5900001254",
@@ -231,10 +197,7 @@ const adzunaLocationHtmlEntities = {
 delete adzunaLocationHtmlEntities.salary_min;
 delete adzunaLocationHtmlEntities.salary_max;
 
-// ---------------------------------------------------------------------
-// REMOTEOK FIXTURES (synthetic — shaped per JOB_API_DATA_REPORT.md's
-// confirmed live field structure)
-// ---------------------------------------------------------------------
+// REMOTEOK FIXTURES
 
 const remoteOkComplete = {
   slug: "remote-senior-react-engineer-nimbus-cloud-labs-1140002",
@@ -269,7 +232,7 @@ const remoteOkIncompleteLocation = {
   slug: "remote-python-developer-databyte-1140004",
   position: "Python Developer",
   company: "Databyte",
-  location: "Remote", // present but carries no city/state/country structure
+  location: "Remote", // No location structure
   salary_min: 0,
   salary_max: 0,
 };
@@ -283,7 +246,7 @@ const remoteOkEpochOnly = {
 };
 
 const remoteOkMalformedMissingFields = {
-  // no position, no company, no id, no slug
+  // No position, company, id
   description: "Some description",
   location: "Remote",
 };
@@ -296,8 +259,7 @@ const remoteOkEntityEncodedTitle = {
   company: "Bell &amp; Howell",
 };
 
-// Same mojibake shape as the Adzuna fixture above, on RemoteOK's fields
-// (`position`/`company` instead of `title`/`company.display_name`).
+// Mojibake on RemoteOK fields
 const remoteOkMojibakeTitleAndCompany = {
   ...remoteOkComplete,
   id: "1140009",
@@ -355,9 +317,7 @@ const remoteOkLegitimateNowHiringManager = { ...remoteOkComplete, id: "1140016",
 const remoteOkLegitimateReactRemote = { ...remoteOkComplete, id: "1140017", slug: "react-remote-1140017", position: "React Developer - Remote" };
 const remoteOkLegitimateSeniorBackend = { ...remoteOkComplete, id: "1140018", slug: "senior-backend-1140018", position: "Senior Backend Developer" };
 
-// Location mojibake fixture (Task #3A) — RemoteOK's location stays a
-// single freeform string (never parsed into city/state/country), but that
-// string still needs the same repair title/company already gets.
+// RemoteOK location mojibake fixture
 const remoteOkLocationMojibake = {
   ...remoteOkComplete,
   id: "1140019",
@@ -365,7 +325,7 @@ const remoteOkLocationMojibake = {
   location: "ZÃ¼rich, Switzerland",
 };
 
-// Already-correct accented location text — must remain unchanged.
+// Correct accented location unchanged
 const remoteOkLocationLegitimateAccented = {
   ...remoteOkComplete,
   id: "1140020",
@@ -373,7 +333,7 @@ const remoteOkLocationLegitimateAccented = {
   location: "São Paulo, Brazil",
 };
 
-// HTML entities in location text must be decoded, same as title/company.
+// Location HTML entities decoded
 const remoteOkLocationHtmlEntities = {
   ...remoteOkComplete,
   id: "1140021",
@@ -381,9 +341,7 @@ const remoteOkLocationHtmlEntities = {
   location: "Sault Ste. Marie &amp; Area",
 };
 
-// ---------------------------------------------------------------------
 // RUN
-// ---------------------------------------------------------------------
 
 console.log("============================");
 console.log(" ADZUNA NORMALIZER TESTS");
@@ -671,9 +629,7 @@ console.log("\n[10n] Existing RemoteOK location behavior unchanged when no clean
 check("location.raw/display_name unchanged for a clean source value", r6.job?.location.raw === "Berlin, Germany" && r6.job?.location.display_name === "Berlin, Germany");
 check("location.city/state/country still null for a clean source value", r6.job?.location.city === null && r6.job?.location.state === null && r6.job?.location.country === null);
 
-// ---------------------------------------------------------------------
 // SUMMARY
-// ---------------------------------------------------------------------
 
 console.log("\n============================");
 console.log(` RESULT: ${passCount} passed, ${failCount} failed`);

@@ -1,21 +1,4 @@
-// Deterministic verification for the core `GET /api/jobs` listing
-// contract (originally Phase 1I-1; updated in Phase 1I-2 to match the
-// `searchJobs`-based handler that replaced the old `listActiveJobs`
-// call, since that phase intentionally extended the response with
-// pagination metadata — see PHASE_1I2_REPORT.md §9/§11 for exactly what
-// changed here and why). This file focuses on the general
-// listing/response contract (success shape, error safety, no external
-// calls, field structure, existing-CRUD-preserved); search/filter/sort/
-// pagination-specific behavior has its own dedicated coverage in
-// backend/scripts/testJobSearch.js.
-//
-// No MongoDB connection is opened and no live HTTP server is started —
-// the controller's `deps.searchJobs` injection seam (the same
-// established pattern used by the ingestion orchestrator/scheduler in
-// Phase 1H) supplies fixture data or simulated failures, and a minimal
-// fake Express `res` object records what the handler sends.
-//
-// Run via: node backend/scripts/testJobListing.js
+// Listing contract verification, no DB
 
 import fs from "node:fs";
 import path from "node:path";
@@ -37,8 +20,7 @@ function check(label, condition) {
   }
 }
 
-// Minimal fake Express response object — just enough to observe what a
-// controller sent, with no framework/dependency involved.
+// Minimal fake response object
 function fakeRes() {
   return {
     statusCode: 200,
@@ -196,40 +178,14 @@ console.log("\n[L7] Existing job route behavior outside this phase's scope is un
   const routeSource = fs.readFileSync(path.resolve(__dirname, "../routes/job.js"), "utf8");
   const controllerSource = fs.readFileSync(path.resolve(__dirname, "../controllers/jobs.js"), "utf8");
 
-  // routes/job.js's write routes (POST/PUT/DELETE) were INTENTIONALLY
-  // changed by Phase 1I-4 to require authMiddleware (see
-  // PHASE_1I4_REPORT.md — these were previously fully unauthenticated).
-  // GET routes remain public/untouched; the write routes still resolve
-  // to the same controllers, just gated by auth first now. Dedicated
-  // coverage of the auth requirement itself lives in testAuthorization.js.
+  // Write routes now require auth
   check("routes/job.js still imports the same 5 handlers plus authMiddleware", /listJobs,\s*getJob,\s*createJob,\s*updateJob,\s*removeJob/.test(routeSource) && /import authMiddleware from ["']\.\.\/middleware\/auth\.js["']/.test(routeSource));
   check("GET /:id still wired to getJob (public, unchanged)", /router\.get\(\s*["']\/:id["']\s*,\s*getJob\s*\)/.test(routeSource));
   check("POST / still resolves to createJob (now behind authMiddleware)", /router\.post\(\s*["']\/["']\s*,\s*authMiddleware\s*,\s*createJob\s*\)/.test(routeSource));
   check("PUT /:id still resolves to updateJob (now behind authMiddleware)", /router\.put\(\s*["']\/:id["']\s*,\s*authMiddleware\s*,\s*updateJob\s*\)/.test(routeSource));
   check("DELETE /:id still resolves to removeJob (now behind authMiddleware)", /router\.delete\(\s*["']\/:id["']\s*,\s*authMiddleware\s*,\s*removeJob\s*\)/.test(routeSource));
 
-  // getJob's response shape was INTENTIONALLY changed by Phase 1I-3 (see
-  // PHASE_1I3_REPORT.md) — from a bare `{error}`/raw-document shape to
-  // the same `{success, data}` / `{success, error}` convention already
-  // established by the listing endpoint, plus id-format validation and
-  // an active-only/public-field-whitelisted lookup. That change has its
-  // own dedicated deterministic coverage in testJobDetails.js; this file
-  // only re-confirms the route wiring itself (still `GET /:id` → `getJob`,
-  // checked above) was not disturbed.
-  // routes/job.js's POST/PUT/DELETE wiring was INTENTIONALLY changed by
-  // Phase 1I-4 (see PHASE_1I4_REPORT.md) to require authMiddleware —
-  // these routes were previously fully unauthenticated. That change has
-  // its own dedicated coverage in testAuthorization.js [P9]; this file's
-  // controller-body checks below (unaffected by the route-wiring change)
-  // still hold.
-  // createJob/updateJob's response shape and error handling were
-  // INTENTIONALLY changed by Phase 1I-5 (see PHASE_1I5_REPORT.md) — from
-  // an unguarded raw-document response to the same {success, data}
-  // convention and public field whitelist listJobs/getJob already use,
-  // plus id validation, try/catch, and MongoDB-update-operator-injection
-  // prevention (req.body was previously usable to smuggle raw Mongo
-  // update operators into PUT /api/jobs/:id). That change has its own
-  // dedicated deterministic coverage in testJobMutationSecurity.js.
+  // Later intentional contract changes
   check("removeJob's 204 behavior is unchanged", /removeJob[\s\S]*?res\.status\(204\)\.send\(\)/.test(controllerSource));
 
   check("jobService.listJobs(filter) generic function is still present and untouched", /export async function listJobs\(filter = \{\}\) \{\s*return Job\.find\(filter\);\s*\}/.test(fs.readFileSync(path.resolve(__dirname, "../services/jobService.js"), "utf8")));

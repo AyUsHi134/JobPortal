@@ -4,23 +4,18 @@ import { success, failure, adapterError } from "./adapterResult.js";
 const SOURCE = "adzuna";
 const BASE_URL = "https://api.adzuna.com/v1/api/jobs";
 
-// Confirmed live during Phase 1A.5 (ADZUNA_LIVE_TEST.md): requesting more
-// than 50 results_per_page is silently capped by Adzuna itself. Clamping
-// here just makes that limit explicit to the caller instead of surprising.
+// Adzuna caps results at 50
 const MAX_RESULTS_PER_PAGE = 50;
 const DEFAULT_RESULTS_PER_PAGE = 20;
 const DEFAULT_TIMEOUT_MS = 15000;
 
 /**
- * Fetch one page of raw Adzuna job search results. Returns raw Adzuna job
- * objects exactly as the API sends them — no field renaming, no
- * normalization, no tech/experience classification.
- *
+ * Fetch raw Adzuna jobs page
  * @param {object} [options]
- * @param {string} [options.country="in"]   Adzuna country code.
- * @param {string} [options.what]            Keyword search (e.g. "software developer").
- * @param {number} [options.page=1]          1-indexed page number.
- * @param {number} [options.results_per_page=20]  Clamped to 50 (see above).
+ * @param {string} [options.country="in"] Adzuna country code
+ * @param {string} [options.what] Keyword search
+ * @param {number} [options.page=1] Page number
+ * @param {number} [options.results_per_page=20] Clamped to 50
  * @param {number} [options.timeoutMs=15000]
  * @returns {Promise<{ok:boolean, source:string, jobs:object[], meta:object, error:object|null, fetchedAt:Date}>}
  */
@@ -81,13 +76,12 @@ export async function fetchAdzunaJobs(options = {}) {
     requested_results_per_page: requestedPerPage,
     results_per_page: resultsPerPage,
     results_returned: data.results.length,
-    // Adzuna's own reported total match count for this query.
+    // Adzuna's reported total matches
     count: typeof data.count === "number" ? data.count : null,
   });
 }
 
-// Deliberately never reads err.config or err.request — both would contain
-// the full request URL, and therefore app_id/app_key, in query-string form.
+// Never read request URL (secrets)
 function classifyAxiosError(err) {
   if (err.response) {
     const status = err.response.status;
@@ -114,8 +108,7 @@ function classifyAxiosError(err) {
   );
 }
 
-// Adzuna's own error bodies (confirmed live in ADZUNA_LIVE_TEST.md) never
-// echo credentials back, but keep this defensive and small regardless.
+// Defensive, keep error small
 function safeErrorBody(body) {
   if (!body || typeof body !== "object") return null;
   const { display, exception } = body;

@@ -6,10 +6,7 @@ const JobSchema = new mongoose.Schema(
     company: { type: String, required: true },
     description: { type: String, required: true },
 
-    // Not marked required: the existing manual "Add Job" form does not
-    // currently submit this field, and routes/controllers are out of
-    // scope for this phase. See JOB_SCHEMA_DESIGN.md §2-3 (marks it
-    // "Required") and PHASE_1C1_REPORT.md for the reasoning.
+    // Not required; form omits it
     apply_link: { type: String },
 
     location: {
@@ -32,8 +29,7 @@ const JobSchema = new mongoose.Schema(
 
     job_type: { type: String, default: "unknown" },
 
-    // Tri-state: true/false/unknown. Never defaults to false, since that
-    // would falsely assert "confirmed on-site" when we simply don't know.
+    // Tri-state, never defaults false
     is_remote: { type: Boolean, default: null },
 
     experience_level: {
@@ -50,9 +46,7 @@ const JobSchema = new mongoose.Schema(
     },
     source_category: { type: String, default: null },
 
-    // Set by classifyJob.js (integrations/jobs/languageClassifier.js) —
-    // "en" or "other", tagging-only, never blocks ingestion. Consumed by
-    // jobService.buildJobFilter as the GET /api/jobs default filter.
+    // Set by language classifier
     language: { type: String, default: "en" },
 
     logo: { type: String, default: "" },
@@ -68,25 +62,21 @@ const JobSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Pre-existing, unrelated concept (application/hiring-funnel stage),
-    // deliberately kept separate from the `status` lifecycle field above.
+    // Separate from status lifecycle
     hiring_stage: { type: String },
 
     source: { type: String, required: true },
 
-    // Not marked required: not yet populated by any existing code path
-    // (manual creation doesn't set it; ingestion adapters aren't built
-    // yet). See the partial unique index below.
+    // Not required; not yet populated
     source_id: { type: String },
 
-    // Derived soft duplicate signal; not yet computed by any code path.
+    // Soft duplicate signal, unused
     dedup_fingerprint: { type: String },
   },
   { timestamps: true }
 );
 
-// Primary dedup key. Partial so records without a source_id (e.g. manual
-// entries, or any pre-migration data) never collide on uniqueness.
+// Primary dedup key, partial
 JobSchema.index(
   { source: 1, source_id: 1 },
   { unique: true, partialFilterExpression: { source_id: { $exists: true } } }
@@ -96,15 +86,6 @@ JobSchema.index({ status: 1, date_posted: -1 });
 JobSchema.index({ "location.country": 1, is_tech_relevant: 1, experience_level: 1 });
 JobSchema.index({ dedup_fingerprint: 1 });
 JobSchema.index({ expires_at: 1 });
-// A {title, tags, normalized_skills} text index previously lived here.
-// Removed: nothing in this codebase ever ran a $text query against it
-// (jobService.buildJobFilter deliberately uses an escaped-regex $or
-// instead — see its own comment), and MongoDB text indexes reserve a
-// top-level `language` field on every document as a per-document stemming
-// override, which collided with this schema's own `language`
-// classification field (MongoServerError 17262 "language override
-// unsupported" on any value other than a few it happens to recognize,
-// e.g. "en"). Dropping the unused index removes the collision with no
-// loss of functionality.
+// Text index removed (language clash)
 
 export default mongoose.model("Job", JobSchema);

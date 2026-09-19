@@ -1,16 +1,4 @@
-// Deterministic verification for the Phase 1I-4 authentication security
-// fixes: signup, login, password hashing/never-returned, and JWT
-// verification middleware (missing/malformed/invalid/expired tokens,
-// and that the authenticated identity comes from the verified token).
-// No MongoDB connection is opened and no live HTTP server is started —
-// controllers/auth.js's `deps` injection seam (the same established
-// pattern used throughout controllers/jobs.js since Phase 1I-1) supplies
-// a mocked User model/bcrypt/jwt.sign, and middleware/auth.js is
-// exercised directly as a plain function against real jsonwebtoken
-// tokens signed with a fake, test-only secret (never the real .env
-// value — this process never reads or touches the real JWT_SECRET).
-//
-// Run via: node backend/scripts/testAuthSecurity.js
+// Auth security verification, no DB
 
 import fs from "node:fs";
 import path from "node:path";
@@ -21,12 +9,10 @@ import { createRegisterHandler, createLoginHandler } from "../controllers/auth.j
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// A fake, test-only secret — never the real value from .env. This is the
-// only JWT_SECRET this process ever sees.
+// Fake test-only JWT secret
 process.env.JWT_SECRET = "test-only-fake-secret-do-not-use-in-real-env";
 
-// middleware/auth.js reads process.env.JWT_SECRET at call time, so it's
-// safe to import after setting the fake secret above.
+// Secret read at call time
 const { default: authMiddleware } = await import("../middleware/auth.js");
 
 let passCount = 0;
@@ -56,9 +42,7 @@ function fakeRes() {
   };
 }
 
-// Minimal fake Mongoose User model: supports `findOne` (used by
-// register/login) and `new UserModel(data)` with a `.save()` (used by
-// register). No real Mongoose/MongoDB involved.
+// Minimal fake User model
 function makeFakeUserModel({ existingUser = null, saveImpl } = {}) {
   const savedInstances = [];
   function FakeUserModel(data) {
@@ -220,9 +204,7 @@ console.log("\n[A10] JWT verification middleware rejects a syntactically-invalid
 // ---------------------------------------------------------------------------
 console.log("\n[A11] JWT verification middleware rejects an expired token");
 {
-  // A negative expiresIn produces a token whose `exp` is already in the
-  // past at the moment it's signed — no need to sleep in a deterministic
-  // test to prove expiry is enforced.
+  // Negative expiresIn yields expired token
   const expiredToken = jwt.sign({ id: "6a0000000000000000000042" }, process.env.JWT_SECRET, { expiresIn: "-10s" });
   let nextCalled = false;
   const res = fakeRes();

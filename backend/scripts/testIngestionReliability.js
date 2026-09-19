@@ -1,15 +1,4 @@
-// Deterministic verification for Phase 1H-3 ingestion reliability and
-// run-tracking behavior: the existing Phase 1H-1 orchestrator run-result
-// structure, source-failure isolation, the new bounded retry/backoff
-// helper (backend/services/ingestionReliability.js), and Phase 1H-2
-// scheduler failure containment/overlap protection remaining intact
-// after this phase's change. No real cron interval is waited on, no
-// live HTTP calls are made, and no MongoDB connection is opened — every
-// adapter fetch and persistence call is stubbed via the existing
-// deps.registry/deps.persist injection seams; retry backoff delays are
-// stubbed via ingestionReliability's injectable `sleep` option.
-//
-// Run via: node backend/scripts/testIngestionReliability.js
+// Ingestion reliability verification, no network
 
 import fs from "node:fs";
 import path from "node:path";
@@ -109,10 +98,7 @@ function defaultCannedPersist(jobs) {
   };
 }
 
-// A "fetch" that fails N times with a given error, then succeeds (or
-// keeps failing if N >= call budget) — used to exercise retry behavior
-// deterministically, with an injectable no-op sleep so no real delay
-// ever occurs in this test run.
+// Fails N times, then succeeds
 function makeFlakyFetch(source, jobs, failuresBeforeSuccess, error) {
   let calls = 0;
   return async () => {
@@ -235,15 +221,14 @@ console.log("\n[R6] Persistence failures are reported without crashing the entir
 {
   const registry = { adzuna: { fetch: mockFetchOk("adzuna", [adzunaRawJob({ id: 1 }), adzunaRawJob({ id: 2 })]), normalize: normalizeAdzunaJob } };
 
-  // (a) persistJobs itself throws unexpectedly (e.g. DB unavailable).
+  // persistJobs throws unexpectedly
   const throwingPersist = async () => {
     throw new Error("simulated MongoDB unavailable");
   };
   const resultA = await runSourceIngestion("adzuna", {}, { registry, persist: throwingPersist });
   check("an unexpected persist-layer exception is captured, not thrown", resultA.errors.some((e) => e.stage === "persist" && e.message === "simulated MongoDB unavailable"));
 
-  // (b) persistJobs returns normally but reports a per-job error (the
-  // realistic Phase 1G behavior for a single bad job in a batch).
+  // Per-job error reported
   const partialFailurePersist = async (jobs) => ({
     summary: { total: jobs.length, inserted: jobs.length - 1, updated: 0, skipped_invalid: 0, errors: 1, cross_source_duplicate_warnings: 0 },
     results: [

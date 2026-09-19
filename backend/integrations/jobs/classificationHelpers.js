@@ -1,6 +1,4 @@
-// Generic helpers shared by the classification modules. Nothing here is
-// specific to tech-relevance vs. experience-level — both need the same
-// safe text handling and pattern matching.
+// Shared classification helpers
 
 export function safeLower(value) {
   return typeof value === "string" ? value.toLowerCase() : "";
@@ -15,11 +13,7 @@ export function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Returns {min, max} for the first recognizable "N-M years" / "N to M
-// years" / "N+ years" pattern found in text, or null if none found.
-// `max` is null for an open-ended "N+ years" pattern. Deliberately only
-// recognizes explicit numeric ranges — never guesses a range from vaguer
-// language.
+// Parses years-of-experience range
 export function extractYearsRange(text) {
   if (!text) return null;
 

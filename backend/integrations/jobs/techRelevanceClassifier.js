@@ -16,29 +16,7 @@ function countDistinctSkillMatches(text) {
   return count;
 }
 
-/**
- * Deterministic, explainable technology-relevance classification for an
- * already-normalized Job object. Returns exactly the two schema-approved
- * fields — { is_tech_relevant, tech_relevance_source } — never a
- * confidence score (JOB_SCHEMA_DESIGN.md deliberately rejected one).
- *
- * Precedence (first match wins):
- *   1. Hard non-tech title exclusion (overrides everything, including
- *      source_category) unless a tech qualifier word is also present.
- *   2. Adzuna's own `source_category === "IT Jobs"` — the strongest
- *      verified signal (ADZUNA_LIVE_TEST.md: 113/120 sampled jobs across
- *      six tech search terms were correctly categorized "IT Jobs").
- *   3. Title match against a curated technical-role pattern list.
- *   4. Description supporting evidence — requires 2+ distinct NAMED
- *      technologies (never a single generic word).
- *   5. Tags as a final tie-break only — same 2+-distinct bar, never
- *      authoritative alone (Phase 1A found tag-only matching produces
- *      false positives).
- *   6. No positive signal found -> false (we looked; found nothing).
- *
- * `is_tech_relevant` is only ever `null` when there is no title AND no
- * description to search at all (nothing to classify).
- */
+/** Classifies technology relevance deterministically */
 export function classifyTechRelevance(job) {
   const titleLower = safeLower(job && job.title);
   const descLower = safeLower(job && job.description);

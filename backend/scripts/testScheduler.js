@@ -1,11 +1,4 @@
-// Deterministic verification for the Phase 1H-2 ingestion scheduler
-// (backend/services/ingestionScheduler.js). No real cron interval is
-// ever waited on: `runScheduledIngestion` (the exact function node-cron
-// invokes on each real tick) is called directly, and
-// `runAllSourcesIngestion` (Phase 1H-1) is stubbed via the scheduler's
-// `deps` injection seam. No live HTTP calls, no MongoDB connection.
-//
-// Run via: node backend/scripts/testScheduler.js
+// Scheduler verification, no cron
 
 import fs from "node:fs";
 import path from "node:path";
@@ -35,9 +28,7 @@ function check(label, condition) {
   }
 }
 
-// Deferred-promise helper: lets a test control exactly when a mocked
-// ingestion run "finishes", so two ticks can be started back-to-back
-// without either one completing first.
+// Deferred-promise helper
 function deferred() {
   let resolve, reject;
   const promise = new Promise((res, rej) => {
@@ -74,7 +65,7 @@ console.log(" PHASE 1H-2 INGESTION SCHEDULER — DETERMINISTIC TESTS");
 console.log(" (no real cron intervals, no live API calls, no MongoDB connection)");
 console.log("============================");
 
-// Make sure we start from a clean slate regardless of any earlier state.
+// Start from clean slate
 stopIngestionScheduler();
 
 // ---------------------------------------------------------------------------
@@ -83,7 +74,7 @@ console.log("\n[S1] Scheduler starts exactly once");
   const before = cron.getTasks().size;
   const task1 = startIngestionScheduler({ schedule: "*/10 * * * *" });
   const afterFirst = cron.getTasks().size;
-  const task2 = startIngestionScheduler({ schedule: "*/1 * * * *" }); // different schedule requested — must still be ignored
+  const task2 = startIngestionScheduler({ schedule: "*/1 * * * *" }); // Different schedule must be ignored
   const afterSecond = cron.getTasks().size;
 
   check("first start actually registers one cron task", afterFirst === before + 1);
@@ -147,7 +138,7 @@ console.log("\n[S4] A second tick is skipped while an ingestion run is still in 
   };
 
   const run1Promise = runScheduledIngestion({ runAllSourcesIngestion: slowSpy });
-  // Fired while run1 is still awaiting `first.promise` — must be skipped, not queued.
+  // Overlapping tick skipped, not queued
   const run2Result = await runScheduledIngestion({ runAllSourcesIngestion: slowSpy });
 
   check("the overlapping tick returns a clear 'skipped' result immediately", run2Result.skipped === true);
@@ -157,8 +148,7 @@ console.log("\n[S4] A second tick is skipped while an ingestion run is still in 
   const run1Result = await run1Promise;
   check("the original in-progress run still completes normally and returns its real result", run1Result.totals && run1Result.totals.insertedCount === 3);
 
-  // Now that run1 has finished, a new tick must run normally again (not
-  // permanently blocked by the earlier overlap).
+  // New tick runs after finish
   let calls2 = 0;
   const run3Result = await runScheduledIngestion({
     runAllSourcesIngestion: async () => {
@@ -198,7 +188,7 @@ console.log("\n[S6] Scheduler stop prevents future scheduled executions");
   check("no active task remains after stop", getActiveTask() === null);
   check("the task was fully removed from node-cron's own registry (not just paused)", cron.getTasks().size === 0);
 
-  // Safe to call again with nothing active.
+  // Safe to call again
   let threw = false;
   try {
     stopIngestionScheduler();
@@ -266,10 +256,7 @@ console.log("\n[S9] The scheduler does not contain duplicated ingestion logic (s
 // ---------------------------------------------------------------------------
 console.log("\n[S10] Existing Phase 1H-1 orchestrator tests still pass after this integration");
 {
-  // Re-import and smoke-check that the orchestrator module Phase 1H-2
-  // depends on still exports exactly what Phase 1H-1 left it exporting —
-  // the full 63-assertion suite itself is run separately (see the
-  // report), this just confirms nothing about its public shape changed.
+  // Orchestrator exports unchanged
   const orchestratorModule = await import("../services/ingestionOrchestrator.js");
   check("runAllSourcesIngestion is still exported", typeof orchestratorModule.runAllSourcesIngestion === "function");
   check("runSourceIngestion is still exported", typeof orchestratorModule.runSourceIngestion === "function");

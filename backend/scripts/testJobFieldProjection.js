@@ -1,14 +1,4 @@
-// Deterministic verification that the listing endpoint's field projection
-// no longer includes `description` while the detail endpoint's still does
-// (the smallest-change fix: searchJobs now selects PUBLIC_SEARCH_RESULT_FIELDS,
-// derived from the same PUBLIC_LISTING_FIELDS_LIST minus "description";
-// getActiveJobById/toPublicJob are untouched). No MongoDB connection is
-// opened — Job.find/Job.findOne are monkey-patched with a minimal
-// chainable stub that just records the `.select()` argument, mirroring
-// this codebase's established "no real DB, capture what would be sent"
-// testing convention (see testJobListing.js/testJobDetails.js).
-//
-// Run via: node backend/scripts/testJobFieldProjection.js
+// Listing projection excludes description
 
 import Job from "../models/Job.js";
 import { searchJobs, getActiveJobById } from "../services/jobService.js";
@@ -25,9 +15,7 @@ function check(label, condition) {
   }
 }
 
-// A chainable stub matching just the Mongoose query-builder methods
-// searchJobs/getActiveJobById actually call, recording the `.select()`
-// argument for later inspection instead of hitting a real database.
+// Chainable stub records select()
 function chainable(resolvedValue) {
   const chain = {
     selectedFields: null,

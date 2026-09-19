@@ -2,15 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-/**
- * Factory for the signup handler, mirroring the `deps` injection-seam
- * pattern `createListJobsHandler`/`createGetJobHandler` already
- * established in controllers/jobs.js — lets backend/scripts/testAuthSecurity.js
- * exercise real signup logic deterministically (mocked User model/bcrypt,
- * no MongoDB connection) without touching production data. Production
- * behavior is unchanged: `routes/auth.js` still imports the same
- * `register`/`login` names.
- */
+/** Signup handler factory, injectable deps */
 export function createRegisterHandler(deps = {}) {
   const UserModel = deps.User || User;
   const hash = deps.hash || bcrypt.hash;
@@ -26,8 +18,7 @@ export function createRegisterHandler(deps = {}) {
       user = new UserModel({ name, email, password: hashed });
       await user.save();
 
-      // Never echoes the hash, the plaintext password, or any other user
-      // field back to the client.
+      // Never returns hash or password
       const token = sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "2d" });
       res.status(201).json({ token, user: { name: user.name, email: user.email } });
     } catch (err) {
@@ -47,9 +38,7 @@ export function createLoginHandler(deps = {}) {
     const { email, password } = req.body;
     try {
       const user = await UserModel.findOne({ email });
-      // Both "no such user" and "wrong password" return the exact same
-      // 401 + message — never reveal which case occurred, so a client
-      // can't enumerate registered emails via the login endpoint.
+      // Same 401 prevents email enumeration
       if (!user) return res.status(401).json({ msg: "Invalid credentials" });
 
       const isMatch = await compare(password, user.password);

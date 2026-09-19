@@ -1,20 +1,6 @@
 import { upsertClassifiedJob } from "./jobService.js";
 
-/**
- * Persists a batch of already-normalized-and-classified Job objects
- * (the output of backend/integrations/jobs/classifyJob.js) through
- * jobService.upsertClassifiedJob, one at a time, in a single sequential
- * pass so the {source, source_id} partial unique index behaves
- * predictably (no concurrent upserts racing each other).
- *
- * Every individual job is wrapped in its own try/catch: one malformed
- * job or one failed upsert is recorded as an "error" outcome and does
- * NOT stop the rest of the batch from being processed. Errors are never
- * swallowed — each one is reported with its message.
- *
- * This function contains no source-specific parsing and never calls an
- * external API — it only persists what it is given.
- */
+/** Persists classified jobs sequentially */
 export async function persistJobs(jobs) {
   const results = [];
 

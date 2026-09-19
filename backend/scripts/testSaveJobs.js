@@ -1,13 +1,4 @@
-// Deterministic verification for the Phase 1I-4 save-job authorization
-// fixes (`POST /api/user/savejob`, `POST /api/user/issaved`). No MongoDB
-// connection is opened and no live HTTP server is started —
-// controllers/user.js's `deps` injection seam supplies a mocked User
-// model, and `req.user` is set directly on the fake request the way
-// authMiddleware would set it from a verified JWT (never from
-// req.body), exactly matching how these handlers actually run in
-// production behind that middleware.
-//
-// Run via: node backend/scripts/testSaveJobs.js
+// Save-job authorization verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -44,8 +35,7 @@ function fakeRes() {
   };
 }
 
-// Simulates authMiddleware already having run: req.user is ALWAYS set
-// from a verified token, never from req.body.
+// Simulates authMiddleware having run
 function authedReq(userId, body) {
   return { user: { id: userId }, body };
 }
@@ -55,9 +45,7 @@ const VALID_JOB_ID_2 = "60f7c2b5c1234567890000bb";
 const SELF_ID = "6a0000000000000000000001";
 const OTHER_USER_ID = "6a0000000000000000000002";
 
-// A small multi-user in-memory fake User "collection" — findById(id)
-// returns a mutable record keyed by id, each with a real-shaped
-// savedJobs array and a `.save()` that just resolves.
+// Fake in-memory user collection
 function makeFakeUserStore(records) {
   const findByIdCalls = [];
   const UserModel = {
@@ -104,9 +92,7 @@ console.log("\n[S2] A user CANNOT save a job onto another user's account, even i
   });
   const handler = createSaveJobHandler({ User: UserModel });
   const res = fakeRes();
-  // The authenticated caller is SELF_ID, but the request body tries to
-  // smuggle in OTHER_USER_ID the way the pre-fix API accepted `userId`
-  // straight from the client.
+  // Body tries smuggling other user
   await handler(authedReq(SELF_ID, { jobId: VALID_JOB_ID_1, userId: OTHER_USER_ID }), res);
 
   check("HTTP 200 (the request succeeds, but only against the caller's own account)", res.statusCode === 200);
@@ -124,9 +110,7 @@ console.log("\n[S3] A user CANNOT read another user's saved-job state via isJobS
   });
   const handler = createIsJobSavedHandler({ User: UserModel });
   const res = fakeRes();
-  // The caller is SELF_ID (who has NOT saved this job); OTHER_USER_ID
-  // (who HAS) is smuggled into the body exactly as the pre-fix API
-  // accepted it.
+  // Body smuggles other user id
   await handler(authedReq(SELF_ID, { jobId: VALID_JOB_ID_1, userId: OTHER_USER_ID }), res);
 
   check("the response reflects the CALLER's own state (false), not the other user's (true)", res.body.isSaved === false);

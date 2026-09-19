@@ -1,19 +1,11 @@
-// Read-only development/verification script for the source adapters under
-// backend/integrations/jobs/. This script does NOT write to MongoDB and
-// does NOT import the Job model, mongoose, or jobService — it only proves
-// the adapters can be imported and return the expected shape against the
-// real live APIs, and prints a safe summary (no credentials, no full
-// descriptions).
-//
-// Run from anywhere via: node backend/scripts/testAdapters.js
+// Read-only adapter verification script
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Resolved relative to this file's own location (not process.cwd()), so
-// this script works regardless of the directory it's invoked from.
+// Resolve paths from file location
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const { fetchAdzunaJobs } = await import("../integrations/jobs/adzunaAdapter.js");
@@ -49,9 +41,7 @@ async function testAdzuna() {
   console.log(" ADZUNA ADAPTER TEST");
   console.log("============================");
 
-  // 1. Missing-credentials path — verified without ever printing real
-  // credential values, by temporarily removing them from this process's
-  // env and restoring immediately after.
+  // Missing-credentials path check
   const savedAppId = process.env.ADZUNA_APP_ID;
   const savedAppKey = process.env.ADZUNA_APP_KEY;
   delete process.env.ADZUNA_APP_ID;
@@ -68,8 +58,7 @@ async function testAdzuna() {
     return;
   }
 
-  // 1b. Invalid (but present) credentials — distinct from "missing", this
-  // exercises the auth_failed classification branch specifically.
+  // Invalid credentials path check
   process.env.ADZUNA_APP_ID = "invalid-test-id";
   process.env.ADZUNA_APP_KEY = "invalid-test-key";
   const invalidCredsResult = await fetchAdzunaJobs({ country: "in", what: "software developer" });
@@ -87,7 +76,7 @@ async function testAdzuna() {
   printResultSummary("India, what=software developer, page 1", page1);
   if (page1.ok) printSampleTitles(page1);
 
-  // 3. Pagination check — page 2 should return a different set of job ids.
+  // Pagination check
   const page2 = await fetchAdzunaJobs({
     country: "in",
     what: "software developer",
@@ -102,7 +91,7 @@ async function testAdzuna() {
     console.log(`Pagination check: ${overlap} overlapping ids between page 1 and page 2 (expect 0).`);
   }
 
-  // 4. results_per_page clamp check (Phase 1A.5 confirmed a real cap of 50).
+  // Page-size clamp check
   const clampCheck = await fetchAdzunaJobs({
     country: "in",
     what: "software developer",

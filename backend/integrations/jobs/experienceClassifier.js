@@ -1,10 +1,7 @@
 import { safeLower, matchesAny, extractYearsRange } from "./classificationHelpers.js";
 import * as K from "./experienceKeywords.js";
 
-// Maps an explicit numeric year range to a tier. Only the exact ranges
-// PHASE_1F's instructions evidenced are mapped — an unlisted range (e.g.
-// "1-3 years") deliberately resolves to no signal (null) rather than
-// guessing which tier it belongs to.
+// Maps year ranges to tiers
 function tierFromYearsRange(range) {
   if (!range) return null;
   const { min, max } = range;
@@ -14,10 +11,7 @@ function tierFromYearsRange(range) {
   return null;
 }
 
-// Precedence within a single text: senior > mid > junior > fresher >
-// entry. This is what guarantees a title containing "Senior" can never
-// resolve to "fresher" even if the same title also happened to contain
-// fresher-tier language.
+// Precedence: senior highest, entry lowest
 function detectSignal(text, senior, junior, fresher) {
   if (matchesAny(text, senior)) return "senior";
 
@@ -34,22 +28,7 @@ function detectSignal(text, senior, junior, fresher) {
   return null;
 }
 
-/**
- * Deterministic, explainable experience-level classification for an
- * already-normalized Job object. Returns one of the schema-approved
- * values: "fresher", "entry", "junior", "mid", "senior", "unknown".
- *
- * The TITLE is checked first, in full, and — if it yields any signal at
- * all — that signal is returned immediately without ever consulting the
- * description. Only when the title gives no signal is the (more
- * restrictive) description check consulted. This is what implements
- * PHASE_1F's explicit requirement that a "Senior" title must never be
- * downgraded by an incidental "graduate" mention in the description.
- *
- * Missing or ambiguous evidence always resolves to "unknown" — fresher
- * status is never inferred merely because experience information is
- * absent (deliberately conservative, per PHASE_1F's instructions).
- */
+/** Classifies experience level deterministically */
 export function classifyExperienceLevel(job) {
   const titleLower = safeLower(job && job.title);
   const descLower = safeLower(job && job.description);

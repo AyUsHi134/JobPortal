@@ -1,13 +1,4 @@
-// Deterministic verification for the Phase 1I-4 profile-authorization
-// and job-CRUD-authorization fixes. No MongoDB connection is opened and
-// no live HTTP server is started — controllers/user.js's `deps`
-// injection seam supplies mocked User model behavior, and route wiring
-// (job create/update/delete now requiring authMiddleware, GET routes
-// staying public) is verified statically against the actual route
-// files, the same technique used throughout Phase 1I-1..1I-3's own
-// regression suites.
-//
-// Run via: node backend/scripts/testAuthorization.js
+// Authorization verification, no DB
 
 import fs from "node:fs";
 import path from "node:path";
@@ -51,10 +42,7 @@ function authedReq(userId, body = {}) {
 const SELF_ID = "6a0000000000000000000001";
 const OTHER_USER_ID = "6a0000000000000000000002";
 
-// A minimal fake Mongoose document: supports .save() and .toObject(),
-// and is itself "thenable" so `await UserModel.findById(id)` (used by
-// updateProfile, no .select()) resolves directly to it, while
-// `UserModel.findById(id).select(...)` (used by getProfile) also works.
+// Minimal fake thenable document
 function makeFakeDoc(fields, { onSave } = {}) {
   const doc = {
     ...fields,
@@ -146,7 +134,7 @@ console.log("\n[P4] A user CANNOT modify another user's profile — updateProfil
   let savedOnto = null;
   const record = { _id: SELF_ID, name: "Old Name", email: "old@example.com", password: "hashed:x", savedJobs: [] };
   const { UserModel, findByIdCalls } = makeFakeUserModel({});
-  // Override findById to track exactly which id's document gets mutated.
+  // Track which id is mutated
   UserModel.findById = (id) => {
     findByIdCalls.push(id);
     const doc = makeFakeDoc({ ...record }, { onSave: (d) => { savedOnto = { id, name: d.name, email: d.email }; } });
@@ -155,9 +143,7 @@ console.log("\n[P4] A user CANNOT modify another user's profile — updateProfil
 
   const handler = createUpdateProfileHandler({ User: UserModel });
   const res = fakeRes();
-  // The request body has no id field at all to manipulate — updateProfile
-  // never reads one — but even a client attempting to smuggle one in via
-  // an unexpected field must not influence which document is targeted.
+  // Body id cannot change target
   await handler(authedReq(SELF_ID, { name: "New Name", user_id: OTHER_USER_ID, userId: OTHER_USER_ID }), res);
 
   check("only the authenticated caller's own id was ever looked up or mutated", findByIdCalls.length === 1 && findByIdCalls[0] === SELF_ID);
