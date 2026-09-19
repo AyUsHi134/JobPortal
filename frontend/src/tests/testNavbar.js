@@ -1,14 +1,4 @@
-// Deterministic static verification for the Phase 2G-1 navbar redesign:
-// the exact logged-out/logged-in link sets this phase's task brief
-// specifies, that auth-only/product-only items are correctly hidden in
-// the other state, that active-route indication (Phase 2F) is
-// preserved, and that no direct API call or Adzuna/RemoteOK reference
-// was introduced. The desktop and mobile menus share ONE `<ul>` (only
-// CSS toggles which is visible at which width — see
-// testResponsiveNavigation.js for the breakpoint wiring itself), so
-// "desktop nav contains X" and "mobile nav contains X" are the same
-// underlying JSX assertion here; that structural fact is itself
-// verified in [8]. Run via `node src/tests/testNavbar.js`.
+// Navbar static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -53,10 +43,7 @@ console.log("\n[1 & 6] Logged-out navigation (desktop and mobile share this same
 // ---------------------------------------------------------------------------
 console.log("\n[2 & 7] Logged-in navigation (desktop and mobile share this same list) contains exactly: Home, Find Jobs, About, Profile (with Saved Jobs inside its dropdown), Logout");
 {
-  // The standalone top-level "Saved Jobs" item is gone — its only
-  // remaining navbar entry is inside the Profile dropdown, itself only
-  // rendered in the {user ? (...)} branch, so it's still structurally
-  // impossible to render when logged out.
+  // Saved Jobs only in dropdown
   check("Saved Jobs is rendered only when logged IN (inside the Profile dropdown, itself only in the ternary's first/if branch)", /\{user \? \([\s\S]{0,900}Saved Jobs/.test(NAVBAR));
   check("Saved Jobs has exactly one navbar entry now (no separate top-level item alongside the dropdown one)", (NAVBAR.match(/Saved Jobs<\/NavLink>/g) || []).length === 1);
   check("Profile is rendered only when logged IN (the ternary's first/if branch)", /\{user \? \([\s\S]{0,350}Profile/.test(NAVBAR));
@@ -66,8 +53,7 @@ console.log("\n[2 & 7] Logged-in navigation (desktop and mobile share this same 
 // ---------------------------------------------------------------------------
 console.log("\n[3] Login/Sign Up are correctly hidden once logged in (not merely present-but-styled-away — actually absent from the conditional branch that renders when `user` is truthy)");
 {
-  // Extract just the `user ? (...)` branch (rendered when logged in) and
-  // confirm it contains neither the Login link nor the Sign Up link.
+  // Logged-in branch lacks login links
   const ternaryStart = NAVBAR.indexOf("{user ? (");
   const elseIndex = NAVBAR.indexOf(") : (", ternaryStart);
   const loggedInBranch = NAVBAR.slice(ternaryStart, elseIndex);
@@ -93,7 +79,7 @@ console.log("\n[5] Active-route indication (Phase 2F) is preserved — still Nav
   check("navLinkClass still applies 'active' via NavLink's own isActive callback", /const navLinkClass = \(\{ isActive \}\) => \(isActive \? "active" : undefined\)/.test(NAVBAR));
   check("every primary/auth NavLink uses the shared navLinkClass (Home/Find Jobs/Saved Jobs/About/Contact/Profile/Login)", (NAVBAR.match(/className=\{navLinkClass\}/g) || []).length >= 5);
   check("the Sign Up link applies its own 'active' class alongside its button styling (still route-aware, not just a static pill)", /signup-btn\$\{isActive \? " active" : ""\}/.test(NAVBAR));
-  check("no hand-rolled useLocation-based path matching was introduced", !/useLocation/.test(NAVBAR));
+  check("no hand-rolled useLocation-based path matching was introduced (useLocation is only used to pass `from` state to /login and /signup)", !/location\.pathname\s*(===|!==|\.startsWith|\.includes)/.test(NAVBAR) && /state=\{authRedirectState\}/.test(NAVBAR));
 }
 
 // ---------------------------------------------------------------------------

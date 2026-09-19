@@ -7,18 +7,7 @@ import JobCard from "../../components/JobCard/JobCard.jsx";
 import AuthRequired from "../../components/AuthRequired/AuthRequired.jsx";
 import "./SavedJobs.scss";
 
-// Phase 2E: `/saved-jobs` — linked from Navbar.jsx since before this
-// phase but never registered as a route (FRONTEND_AUDIT.md §2, a
-// confirmed dead link). BACKEND_API_CONTRACT.md §6 has no endpoint that
-// lists a user's saved jobs directly — only GET /api/user/profile (§7)
-// returns the authenticated caller's `savedJobs` array of ids. This page
-// follows that actual contract rather than inventing a response shape:
-// it reads the id list from the profile, then hands it to
-// utils/savedJobsLoader.js#loadSavedJobs, which requests each job
-// individually via jobsApi.getJobById() (Phase 2D). Both calls carry
-// only the JWT — this page can never request another user's saved jobs,
-// since getProfile()/getJobById() never accept or send a user id of any
-// kind.
+// Saved jobs page via profile
 export default function SavedJobs() {
   const { isAuthenticated } = useAuth();
   const [status, setStatus] = useState("loading"); // loading | success | error
@@ -50,10 +39,7 @@ export default function SavedJobs() {
     };
   }, [isAuthenticated]);
 
-  // Passed to each JobCard as onUnsaved: once the backend confirms a job
-  // was actually removed from the caller's savedJobs, drop it from this
-  // page's own list immediately rather than leaving a stale card behind
-  // until the next reload.
+  // Drop card after confirmed removal
   const handleUnsaved = (jobId) => {
     setJobs((prev) => prev.filter((job) => job._id !== jobId));
   };

@@ -1,11 +1,4 @@
-// Deterministic verification for the Phase 2G-2 JobCard metadata rules:
-// the trailing-comma location fix, the badge-specific "confirmed remote
-// only" signal, and the "don't show Remote twice" location-suppression
-// decision. These are the new/changed pure functions in
-// utils/jobDisplay.js this phase introduced or fixed — no React
-// rendering, no network, mirroring the existing testJobDisplay.js /
-// testSavedJobUi.js convention. Run via
-// `node src/tests/testJobCardMetadata.js`.
+// JobCard metadata rules verification
 
 import {
   formatLocation,

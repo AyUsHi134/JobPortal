@@ -1,12 +1,4 @@
-// Deterministic + static verification for Phase 2G-7B's Find Jobs
-// visual/UX refinements: the richer no-results state (a named query,
-// honest zero-results behavior, working Clear Search/Browse All Jobs
-// actions reusing the existing Phase 2C state-transition functions — no
-// duplicated search logic), the always-shown results count line, that
-// every Phase 2C filter/sort control and server-side pagination control
-// is still present and untouched, and that FindJob.scss now reads from
-// the shared design-system tokens instead of the old purple palette. Run
-// via `node src/tests/testJobDiscoveryUi.js`.
+// Find Jobs UI verification
 
 import fs from "node:fs";
 import path from "node:path";

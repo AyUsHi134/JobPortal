@@ -1,10 +1,4 @@
-// Deterministic verification for frontend/src/utils/savedJobUi.js
-// (Phase 2E): the pure Save-button decision logic JobCard.jsx and
-// JobDetail.jsx both render through, and the pure "trust the backend's
-// real savedJobs list" check used after a save request resolves. No
-// React rendering, no network — these are the exact functions the
-// components call, so testing them directly is testing the actual
-// button-state decisions. Run via `node src/tests/testSavedJobUi.js`.
+// Save button logic verification
 
 import { getSaveButtonState, resolveSavedStateAfterSave, resolveSavedStateAfterUnsave } from "../utils/savedJobUi.js";
 

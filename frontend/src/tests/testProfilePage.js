@@ -1,10 +1,4 @@
-// Deterministic + static verification for the Phase 2E Profile page:
-// utils/profileUi.js#buildProfileUpdates (the pure "only send changed
-// fields" decision) and pages/Profile.jsx itself (loads/edits only the
-// authenticated caller's own account, never renders a password/hash or
-// other internal field, has no fabricated resume-upload control with no
-// backend behind it, and routes every request through the centralized
-// userApi service). Run via `node src/tests/testProfilePage.js`.
+// Profile page verification
 
 import fs from "node:fs";
 import path from "node:path";

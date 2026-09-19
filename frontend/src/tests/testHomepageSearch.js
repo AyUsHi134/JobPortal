@@ -1,10 +1,4 @@
-// Deterministic verification for the Phase 2G-3 homepage hero search:
-// the pure utils/homepageSearch.js validation/URL-building functions,
-// plus static checks that Home.jsx actually wires them correctly — never
-// calling the jobs API itself, never duplicating FindJob.jsx's real
-// backend-side search, and submitting on both the button and the Enter
-// key (native <form> submission). Run via
-// `node src/tests/testHomepageSearch.js`.
+// Homepage search verification
 
 import fs from "node:fs";
 import path from "node:path";

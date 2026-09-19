@@ -1,10 +1,4 @@
-// Deterministic verification for frontend/src/services/jobsApi.js
-// (Phase 2B): listJobs/getJobById correctly parse the finalized backend
-// envelopes, buildJobQueryParams serializes/allowlists filter params
-// correctly, and createJob/updateJob/deleteJob use the correct
-// endpoints. Compared directly against BACKEND_API_CONTRACT.md §2-§5.
-// No real network call is made (mocked axios adapter). Run via
-// `node src/tests/testJobsApi.js`.
+// Jobs API verification, mocked axios
 
 globalThis.localStorage = (() => {
   const store = new Map();
@@ -81,7 +75,7 @@ console.log("\n[1] buildJobQueryParams keeps only recognized backend parameters"
     sort: "newest",
     page: 2,
     limit: 10,
-    // Not a recognized backend parameter — must be dropped:
+    // Unrecognized parameter must drop
     notAThing: "should never be sent",
   });
 

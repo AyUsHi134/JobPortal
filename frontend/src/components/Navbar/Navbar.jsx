@@ -1,39 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink, Link, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import { useAuth } from "../../hooks/useAuth.js";
 import "./Navbar.scss";
 
-// Phase 2F established the underlying mechanics — a real <button>
-// hamburger toggle (aria-expanded/aria-controls, closes on navigation)
-// and NavLink-based active-route indication — and both are kept exactly
-// as they were; per this phase's own instruction not to replace the
-// hamburger implementation without a real reason to. No authentication
-// logic changed here either: `logout` still comes straight from
-// AuthContext and is called exactly the same way.
-//
-// Phase 2G-1: reworked the link SET and its grouping to match this
-// phase's exact logged-out/logged-in navigation spec (a single,
-// still-one-list `<ul>` — no duplicated desktop/mobile DOM — with the
-// auth-action items marked so desktop CSS can push them to the right
-// edge while the primary links sit left, after the brand; see
-// Navbar.scss's `@include tablet-down` section for how this collapses
-// into one plain vertical list on mobile, exactly as it already did):
-//   logged out: Home, Find Jobs, About, Contact | Login, Sign Up
-//   logged in:  Home, Find Jobs, About | Profile
-// "Contact" is intentionally omitted once logged in — this matches the
-// task's own explicit ordering, not an oversight.
-//
-// Profile is a dropdown/menu trigger rather than a direct link — it
-// toggles a small menu (View Profile / Saved Jobs / Logout) instead of
-// navigating on its own click; View Profile and Logout reuse the exact
-// same /profile route and logout()/navigate("/login") the old standalone
-// Profile link and Logout button used, just relocated. The standalone
-// top-level "Saved Jobs" item that used to sit before "About" is gone —
-// Saved Jobs now has exactly one navbar entry, inside this dropdown.
+// Navbar link groups and dropdown
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const authRedirectState = { from: location.pathname + location.search };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
@@ -47,18 +23,14 @@ export default function Navbar() {
 
   const closeMobileMenu = () => setMobileOpen(false);
 
-  // Selecting a Profile-menu option (View Profile / Saved Jobs) closes
-  // both the dropdown itself and, on mobile, the hamburger panel it sits
-  // inside — the Profile trigger's own click does neither, so opening
-  // the dropdown on mobile doesn't instantly collapse the panel around it.
+  // Selecting menu option closes menus
   const closeProfileMenu = () => setProfileMenuOpen(false);
   const handleProfileMenuSelect = () => {
     closeProfileMenu();
     closeMobileMenu();
   };
 
-  // Closes the Profile dropdown on any click outside it. Only attached
-  // while the menu is actually open.
+  // Close dropdown on outside click
   useEffect(() => {
     if (!profileMenuOpen) return undefined;
     const handleClickOutside = (event) => {
@@ -103,10 +75,7 @@ export default function Navbar() {
           <li><NavLink to="/contact" className={navLinkClass} onClick={closeMobileMenu}>Contact</NavLink></li>
         )}
 
-        {/* The first item in this group is where desktop CSS pushes the
-            "authentication actions" cluster to the bar's right edge
-            (Navbar.scss's `.navbar__links li.navbar__auth-start`) — the
-            primary links above sit left, right after the brand. */}
+        {/* Auth cluster starts here */}
         {user ? (
           <li className="navbar__auth-start navbar__profile-menu" ref={profileMenuRef}>
             <button
@@ -136,8 +105,8 @@ export default function Navbar() {
           </li>
         ) : (
           <>
-            <li className="navbar__auth-start"><NavLink to="/login" className={navLinkClass} onClick={closeMobileMenu}>Login</NavLink></li>
-            <li><NavLink to="/signup" className={({ isActive }) => `signup-btn${isActive ? " active" : ""}`} onClick={closeMobileMenu}>Sign Up</NavLink></li>
+            <li className="navbar__auth-start"><NavLink to="/login" state={authRedirectState} className={navLinkClass} onClick={closeMobileMenu}>Login</NavLink></li>
+            <li><NavLink to="/signup" state={authRedirectState} className={({ isActive }) => `signup-btn${isActive ? " active" : ""}`} onClick={closeMobileMenu}>Sign Up</NavLink></li>
           </>
         )}
       </ul>

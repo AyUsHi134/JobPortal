@@ -2,16 +2,10 @@ import React, { useState } from "react";
 import { Alert } from "@mui/material";
 import "./Contact.scss";
 
-// Converted from an uncontrolled, no-op form to match this app's dominant
-// controlled-form pattern (Signup.jsx/AddJob.jsx/Profile.jsx): controlled
-// state per field, an idle/submitting/success/error status machine, and an
-// MUI <Alert> for the result message (same severity/role/placement style
-// Signup.jsx uses — right after the heading, before the form). There is no
-// backend endpoint for contact submissions, so "submit" builds and opens a
-// mailto: link as a client-only fallback rather than calling a service.
+// Controlled form, mailto fallback
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [status, setStatus] = useState("idle"); // idle | submitting | success | error
+  const [status, setStatus] = useState("idle"); // Form status values
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });

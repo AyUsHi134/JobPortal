@@ -1,13 +1,4 @@
-// Deterministic + static verification that JobCard.jsx (Phase 2C) and
-// JobDetail.jsx (Phase 2D) both integrate the Phase 2E saved-job state
-// through the SAME shared hook/helper pair — hooks/useSavedJobState.js +
-// utils/savedJobUi.js#getSaveButtonState — rather than each
-// reimplementing its own fetch/save logic. Also verifies the concrete
-// UX requirements this phase calls out for both: no client-supplied
-// user id is ever sent, no internal user id is ever rendered, a
-// logged-out click no longer fires a blocking alert(), and a save
-// failure is shown as safe inline text. Run via
-// `node src/tests/testSaveIntegration.js`.
+// Save integration static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -70,7 +61,7 @@ console.log("\n[4] A logged-out Save click no longer fires a blocking alert() �
 {
   for (const [label, source] of [["JobCard.jsx", JOB_CARD], ["JobDetail.jsx", JOB_DETAIL]]) {
     check(`${label} contains no alert(...) call for the save flow`, !/\balert\(/.test(source));
-    check(`${label} navigates to /login when the button's action is "login"`, /action === "login"[\s\S]{0,40}navigate\("\/login"\)/.test(source));
+    check(`${label} navigates to /login when the button's action is "login"`, /action === "login"[\s\S]{0,40}navigate\("\/login", \{ state: \{ from: location\.pathname \+ location\.search \} \}\)/.test(source));
   }
 }
 

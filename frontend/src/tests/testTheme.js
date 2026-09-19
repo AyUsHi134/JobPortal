@@ -1,17 +1,4 @@
-// Deterministic static verification for the green theme migration.
-// Originally written for Phase 2G-1's flat single-green palette; Phase
-// 2G-7A refined the same token NAMES onto a richer, coordinated palette
-// (deep forest primary, a distinct light-sage page background vs. a
-// warm-white card surface) — this file's literal hex assertions were
-// updated in place to match (the same "update in place, don't fork a
-// phase-numbered duplicate" pattern every prior phase in this project
-// has followed), while its scope stays the same: the shared
-// design-system tokens (_variables.scss) and the MUI-side palette
-// (theme.js) are consistent with each other, status colors (error/
-// success) kept their original meaning instead of being repainted
-// green, and the Phase 2F accessible focus-ring system is preserved
-// untouched. See testDesignSystem.js for the new tokens/surfaces this
-// phase added. Run via `node src/tests/testTheme.js`.
+// Green theme static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -114,12 +101,7 @@ console.log("\n[5] Navbar.scss and Login.scss (this phase's explicit in-scope fi
 // ---------------------------------------------------------------------------
 console.log("\n[6] Explicitly out-of-scope product-feature files were NOT edited this phase (their own remaining purple, if any, is a documented, deliberate deferral — not this test's job to fix)");
 {
-  // This is a presence check, not an absence check: confirms this phase
-  // did not touch files it was told not to, by verifying they still
-  // exist and are unrelated to the theme-token files this phase owns.
-  // (Their content is intentionally not asserted here — see
-  // PHASE_2G1_REPORT.md §11 for the honest list of what still shows
-  // purple after this phase.)
+  // Presence check, not absence
   const untouchedFiles = [
     "components/JobCard/JobCard.scss",
     "pages/JobDetail/JobDetail.scss",

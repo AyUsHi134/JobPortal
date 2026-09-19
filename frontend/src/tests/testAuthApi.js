@@ -1,9 +1,4 @@
-// Deterministic verification for frontend/src/services/authApi.js
-// (Phase 2B): correct endpoint, correct request body, correct success
-// response, correct error handling for both login and signup — compared
-// directly against BACKEND_API_CONTRACT.md §1. No real network call is
-// made (a mocked axios adapter, per the same technique as
-// testApiService.js). Run via `node src/tests/testAuthApi.js`.
+// Auth API verification, mocked axios
 
 globalThis.localStorage = (() => {
   const store = new Map();
@@ -90,10 +85,7 @@ console.log("\n[2] login() never logs the password anywhere");
 // ---------------------------------------------------------------------------
 console.log("\n[3] login() failure surfaces the backend's real message safely (the msg-vs-message audit finding)");
 {
-  // BACKEND_API_CONTRACT.md §1: login failures use {msg: "Invalid credentials"}
-  // — FRONTEND_AUDIT.md §5 found the old Login.jsx read `data.message`
-  // (always undefined) instead. The centralized ApiError normalizer
-  // fixes this class of bug once, for every caller.
+  // Login failure uses msg key
   apiClient.defaults.adapter = mockFailureAdapter({ status: 401, data: { msg: "Invalid credentials" } });
 
   let thrown = null;

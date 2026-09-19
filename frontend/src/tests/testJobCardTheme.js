@@ -1,11 +1,4 @@
-// Deterministic + static verification for Phase 2G-7B's JobCard visual
-// integration with the 2G-7A design system: semantic badge colors tied
-// to MEANING (not randomly assigned), a stable fixed badge position,
-// skills staying visually distinct from status badges, location
-// formatting reused (not reimplemented), and confirmation that no
-// previously-removed feature (Adzuna/RemoteOK labels, Apply, View
-// Original, "Log in to Save") was reintroduced while re-theming. Run via
-// `node src/tests/testJobCardTheme.js`.
+// JobCard theme static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -60,9 +53,7 @@ console.log("\n[2] Semantic badge colors, one pairing per meaning — not a scat
   check("Entry/Fresher experience still uses the soft-yellow pair ($badge-yellow-bg/$badge-yellow-text) — out of this pass's given spec, left unchanged", /\.badge-experience--entry\s*\{\s*background:\s*\$badge-yellow-bg;\s*color:\s*\$badge-yellow-text;/.test(JOBCARD_SCSS));
   check("Senior/other experience uses the exact violet-50/violet-700 pair", /\.badge-experience--senior\s*\{[^}]*background:\s*#f5f3ff;[^}]*color:\s*#6d28d9;/.test(JOBCARD_SCSS));
 
-  // The 4 badge pairs must all be genuinely distinct colors from each
-  // other — confirming they're 4 real semantic categories, not the same
-  // color reused under different class names.
+  // Four distinct badge colors
   const pairs = [/\$badge-green-bg:\s*(#\w+)/, /\$badge-blue-bg:\s*(#\w+)/, /\$badge-yellow-bg:\s*(#\w+)/, /\$badge-lavender-bg:\s*(#\w+)/];
   const bgValues = pairs.map((re) => VARIABLES.match(re)?.[1]?.toLowerCase());
   check("all 4 badge background tokens resolve to real, distinct hex values", bgValues.every(Boolean) && new Set(bgValues).size === 4);
@@ -90,12 +81,7 @@ console.log("\n[4] 2G-7C: badge position moved from a fixed top-of-card slot to 
 // ---------------------------------------------------------------------------
 console.log("\n[5] Tech-stack skill tags now share ONE centralized blue with the Tech-relevance badge, and every tag (badges + skills) shares one flex-wrap container — a deliberate reversal of the old 'skills stay neutral/separate' rule, per this pass's explicit tag-unification requirement");
 {
-  // The color-bearing rule specifically (.job-skills nesting .skill-chip
-  // with a real background/color pair) — both ".job-skills {" and
-  // ".skill-chip {" also appear earlier in the file (the display:contents
-  // grouping rule and the shared geometry rule respectively), so this
-  // matches the actual nested color declaration directly rather than
-  // slicing from either literal string's first occurrence.
+  // Match nested skill-chip color rule
   const skillChipColorMatch = /\.job-skills\s*\{\s*\.skill-chip\s*\{([\s\S]{0,120}?)\}\s*\}/.exec(JOBCARD_SCSS);
   const skillChipColorBlock = skillChipColorMatch ? skillChipColorMatch[1] : "";
   check("skill chips use the exact indigo-50/indigo-700 pair — the same shade .badge-tech uses, not a one-off color", /background:\s*#eef2ff/.test(skillChipColorBlock) && /color:\s*#4338ca/.test(skillChipColorBlock));
@@ -135,13 +121,7 @@ console.log("\n[8] No leftover purple hex in JobCard.scss after this phase's re-
   ];
   const offenders = KNOWN_PURPLE_HEXES.filter((hex) => JOBCARD_SCSS.toLowerCase().includes(hex));
   check("JobCard.scss contains no old purple hex value", offenders.length === 0);
-  // Visual-only correction: the card surface is now the exact literal
-  // #ffffff the reference specifies, replacing the previous
-  // $surface-color token — a deliberate, explicit exception to "always
-  // read from a token," not an accidental one-off.
-  // A generous character window (not [^}]*): .modern-job-card's rule
-  // body contains a Sass interpolation (#{...}) before this declaration,
-  // whose own closing brace would prematurely end a [^}]-based match.
+  // Card surface literal white
   check("the card surface is the exact reference white (#ffffff)", /\.modern-job-card\s*\{[\s\S]{0,2000}background:\s*#ffffff;/.test(JOBCARD_SCSS));
 }
 
@@ -150,11 +130,7 @@ console.log("\n[9] Card action area: View Details on the left, a Save control wi
 {
   check("View Details is still the first action in the footer's DOM order (reads as 'left')", JOBCARD_JSX.indexOf("view-details-btn") < JOBCARD_JSX.indexOf("save-btn"));
   check("the action area now gives both buttons equal/flexible width (flex: 1 1 0) with a 12px gap, per this pass's explicit action-area redesign", /\.job-card-actions\s*\{[^}]*gap:\s*12px;/.test(JOBCARD_SCSS) && /\.view-details-btn,\s*\n\s*\.save-btn\s*\{\s*\n\s*flex:\s*1 1 0;/.test(JOBCARD_SCSS));
-  // Visual-only correction: both the background and the divider are now
-  // the exact reference slate-100 (#f1f5f9) — the divider intentionally
-  // matches the background it sits on (barely perceptible against the
-  // action area itself; the real visible seam is the step down from the
-  // white details area above it).
+  // Divider matches background
   check("the action area uses the exact reference slate-100 background + a same-shade top divider", /\.job-card-actions\s*\{[^}]*background:\s*#f1f5f9;[^}]*border-top:\s*1px solid #f1f5f9;/.test(JOBCARD_SCSS));
   check("Bookmark/BookmarkBorder icons are imported from the already-installed @mui/icons-material (no new dependency)", /from "@mui\/icons-material\/Bookmark"/.test(JOBCARD_JSX) && /from "@mui\/icons-material\/BookmarkBorder"/.test(JOBCARD_JSX));
   check("the icon toggles on the same isSaved flag the label/class already use — filled when saved, outlined otherwise, no new state introduced", /\{isSaved \? <BookmarkIcon fontSize="small" \/> : <BookmarkBorderIcon fontSize="small" \/>\}/.test(JOBCARD_JSX));

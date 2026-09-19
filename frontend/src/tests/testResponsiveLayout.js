@@ -1,16 +1,4 @@
-// Deterministic, static verification for the Phase 2F responsive/layout
-// polish pass. No headless-browser automation tool is available in this
-// environment (confirmed again this phase, consistent with every prior
-// phase's report), so these checks verify the actual CSS/JSX rules that
-// produce the responsive behavior — the shared breakpoint scale is
-// defined once and actually used, known overflow-risk patterns
-// (unbounded grid minimums, fixed pixel widths, unwrapped flex rows) are
-// fixed at their real source, and long real data is handled by wrapping
-// CSS rather than a truncating/fabricating transform — rather than
-// re-deriving rendered pixel values no tool here can measure. See
-// PHASE_2F_REPORT.md §11/§21 for how this was combined with a live
-// dev-server smoke check. Run via
-// `node src/tests/testResponsiveLayout.js`.
+// Responsive layout static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -104,11 +92,7 @@ console.log("\n[5] Long real text (titles, company names, locations, skills) wra
     check(`${label} uses the shared wrap-safely mixin at least once`, /@include wrap-safely/.test(source));
   }
 
-  // Confirm no truncating transform was introduced anywhere that would
-  // shorten a real job field — this project's data-honesty rule applies
-  // to layout too: real text may wrap onto more lines, but is never cut
-  // short or replaced with an ellipsis for a field the user actually
-  // needs to read in full.
+  // No truncating transforms allowed
   const jobCard = readSource("components/JobCard/JobCard.jsx");
   const jobDetail = readSource("pages/JobDetail/JobDetail.jsx");
   for (const [label, source] of [["JobCard.jsx", jobCard], ["JobDetail.jsx", jobDetail]]) {
@@ -146,7 +130,7 @@ console.log("\n[8] Active-route indication uses React Router's own NavLink rathe
 {
   const jsx = readSource("components/Navbar/Navbar.jsx");
   check("imports NavLink from react-router-dom", /import \{[^}]*NavLink[^}]*\} from "react-router-dom"/.test(jsx));
-  check("does not hand-roll its own useLocation-based path matching", !/useLocation/.test(jsx));
+  check("does not hand-roll its own useLocation-based path matching (only passes `from` state to auth links)", !/location\.pathname\s*(===|!==|\.startsWith|\.includes)/.test(jsx));
 }
 
 console.log("\n============================");

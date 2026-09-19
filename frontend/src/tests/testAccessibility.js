@@ -1,17 +1,4 @@
-// Deterministic static verification for the Phase 2F accessibility pass.
-// This is a practical, scoped audit — not a WCAG-certification claim
-// (per this phase's own explicit instruction to report the scope
-// honestly, not claim full certification). It checks the concrete,
-// source-verifiable things this phase actually changed: real <label>
-// elements/aria-labels on form inputs, a visible keyboard-focus
-// indicator applied app-wide (previously absent entirely), accessible
-// names on icon-only/opens-in-new-tab links, keyboard-operable controls
-// (real <button>s, not clickable non-interactive elements), and
-// associated error messaging. It does not measure color contrast ratios
-// or run an automated axe-core-style audit (no such tool/dependency was
-// added, per this phase's "no unnecessary dependencies" instruction) —
-// see PHASE_2F_REPORT.md §12 for the honest scope statement. Run via
-// `node src/tests/testAccessibility.js`.
+// Static accessibility audit, scoped
 
 import fs from "node:fs";
 import path from "node:path";
@@ -71,16 +58,7 @@ console.log("\n[3] The password-visibility toggle is a real, keyboard-operable <
 
 // ---------------------------------------------------------------------------
 console.log("\n[4] Links that open in a new tab announce that fact in their accessible name (a sighted user sees the ↗ glyph; a screen-reader user needs it said explicitly)");
-// Phase 2G-2 note: JobCard's own "View Original" link (which this check
-// originally covered) was intentionally removed this phase — the card's
-// only actions are now "View Details" (internal SPA navigation via
-// useNavigate, not a new-tab link) and Save, neither of which opens a
-// new tab, so there is nothing left on JobCard for this specific check to
-// cover. See testJobCard.js for JobCard's own current accessibility
-// checks. Phase 2G-4 relabeled JobDetail's Apply action ("Apply Now ↗",
-// was "Apply / View Original Job ↗") but kept this exact aria-label
-// pattern and rel attribute unchanged — see testJobApply.js for that
-// phase's own full Apply-flow coverage.
+// View Original link removed
 {
   const jobDetail = readSource("pages/JobDetail/JobDetail.jsx");
   check("JobDetail's Apply link has an aria-label mentioning it opens in a new tab", /aria-label=\{`Apply for[\s\S]{0,60}opens in a new tab/.test(jobDetail));

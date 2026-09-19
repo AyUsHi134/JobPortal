@@ -1,15 +1,4 @@
-// Deterministic + static verification for the Phase 2E authentication
-// flow (signup/login/logout/AuthContext restoration/401 handling). The
-// underlying login()/signup() request shapes and the token-storage
-// primitives were already thoroughly covered in Phase 2B's
-// testAuthApi.js/testApiService.js and are not re-tested here; this file
-// covers what's specific to Phase 2E: the end-to-end
-// "login -> token stored -> protected request authenticated -> 401
-// clears it -> logout clears it" pipeline exercised through the real
-// service functions, plus static proof that no password/token is ever
-// logged and that Login.jsx/Signup.jsx/AuthContext.jsx actually wire
-// together the way this phase requires. Run via
-// `node src/tests/testAuthFlow.js`.
+// Auth flow verification, static
 
 import fs from "node:fs";
 import path from "node:path";
@@ -81,7 +70,7 @@ console.log("\n[1] End-to-end login flow: real login() response -> stored -> a s
   const { token, user } = await login("ayushi@example.com", "correct-password");
   check("login() resolves with the real backend shape", token === "real-jwt-token" && user.name === "Ayushi");
 
-  // This is exactly what AuthContext.login(token, user) does.
+  // Mirrors AuthContext.login
   setStoredAuth(token, user);
   check("the stored auth now reflects the logged-in session", getStoredAuth().token === "real-jwt-token" && getStoredAuth().user.email === "ayushi@example.com");
 
@@ -194,8 +183,7 @@ console.log("\n[7] Login.jsx/Signup.jsx never log the password or the JWT anywhe
     const leaksSensitiveData = consoleCalls.some((call) => /password|token/i.test(call));
     check(`${label} has no console.* call mentioning password/token`, !leaksSensitiveData);
   }
-  // Repository-wide sweep, mirroring PHASE_2B_REPORT.md §3's own check —
-  // re-confirmed here since this phase touches the auth pages directly.
+  // Repository-wide sweep
   function walk(dir, files = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);

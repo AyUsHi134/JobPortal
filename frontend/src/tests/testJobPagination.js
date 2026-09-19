@@ -1,10 +1,4 @@
-// Deterministic verification for the Phase 2C pagination logic and the
-// fetch-status state machine (frontend/src/utils/jobDiscoveryState.js):
-// page bounds, page-change preserving other filters, safe handling of
-// `totalPages: 0`, and — critically — that a request-in-flight never
-// lets a previous, stale result be presented as the current query's
-// answer. No real network call is made. Run via
-// `node src/tests/testJobPagination.js`.
+// Pagination and status verification
 
 globalThis.localStorage = (() => {
   const store = new Map();
@@ -116,10 +110,7 @@ console.log("\n[5] isValidPageTarget rejects out-of-range / malformed page numbe
 // ---------------------------------------------------------------------------
 console.log("\n[6] A page beyond the final page is handled safely end-to-end (the backend's own documented behavior)");
 {
-  // BACKEND_API_CONTRACT.md §3: a page beyond the last page returns HTTP
-  // 200 with an empty data array and honest pagination metadata — never
-  // an error. Confirms the frontend's data layer passes that through
-  // correctly rather than treating it as a failure.
+  // Out-of-range page returns empty
   apiClient.defaults.adapter = mockAdapter({
     status: 200,
     data: { success: true, data: [], pagination: { page: 999, limit: 20, total: 113, totalPages: 6 } },
@@ -139,12 +130,12 @@ console.log("\n[7] Fetch-status state machine: loading never presents stale resu
   const pageOneJobs = [{ _id: "job-1", title: "Old Query Result" }];
   let state = INITIAL_DISCOVERY_STATE;
 
-  // A first, successful fetch populates jobs.
+  // First fetch populates jobs
   state = discoveryReducer(state, { type: "FETCH_SUCCESS", jobs: pageOneJobs, pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } });
   check("after a successful fetch, status is success", state.status === "success");
   check("jobs holds the real result", state.jobs === pageOneJobs);
 
-  // A new query starts (e.g. the user changed a filter).
+  // New query starts
   state = discoveryReducer(state, { type: "FETCH_START" });
   check("status becomes 'loading' the instant a new request starts", state.status === "loading");
   check(

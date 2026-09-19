@@ -1,13 +1,4 @@
-// Deterministic, static verification for the Phase 2G-5 Forgot Password
-// page. This phase's audit (see PHASE_2G5_REPORT.md) found the page was
-// a pure client-side mock — `setSent(true)` fired unconditionally on
-// submit, no network request was ever made, and no backend endpoint has
-// ever existed for it. The fix was to stop the page from claiming an
-// email was sent, not to fabricate a working request/response cycle
-// against a backend that has no such endpoint. These tests guard that
-// honesty property: no fake success state, no network call, a clear
-// path back to the one real, working auth flow (Login). Run via
-// `node src/tests/testForgotPassword.js`.
+// Forgot Password honesty verification
 
 import fs from "node:fs";
 import path from "node:path";

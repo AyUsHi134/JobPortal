@@ -17,47 +17,16 @@ import ForgotPassword from "./pages/ForgotPassword";
 import JobDescription from "./pages/JobDescription/JobDescription";
 import SavedJobs from "./pages/SavedJobs/SavedJobs.jsx";
 
-// Phase 2D: resolved the routing duplication FRONTEND_AUDIT.md §2/§3
-// flagged — `/jobs/:id` used to render `JobDetail` directly with no
-// `job` prop supplied (a confirmed-broken route, since `JobDetail`
-// assumed `job` was always a real object) and duplicated `/job/:id`'s
-// concept of "view one job's detail." `/job/:id` -> `JobDescription` was
-// already the real, data-fetching route (and the one JobCard.jsx
-// navigates to), so it's kept as the single canonical Job Detail route;
-// `/jobs/:id` was removed rather than fixed, since keeping two routes
-// for the same concept would just reintroduce the original confusion.
-// The stray top-level `<Route .../>` expression statement that used to
-// sit here (a harmless but dead duplicate of the real route
-// registration below) was removed for the same reason.
-//
-// Phase 2E: registered `/saved-jobs`, which Navbar.jsx already linked to
-// but which had no matching route (FRONTEND_AUDIT.md §2 — a confirmed
-// dead link before this phase).
+// Route cleanup, saved-jobs route added
 
-// The global Footer is suppressed only on these single-purpose auth
-// funnels (Login/Signup/ForgotPassword) — its Quick Links/newsletter/
-// social content has nothing to do with completing a login/signup/
-// password-recovery form and would only compete with that one action.
-// Every other route (including the protected Profile/AddJob/SavedJobs
-// pages, which are ordinary in-app browsing, not funnels) keeps it.
+// Footer hidden on auth pages
 const HIDE_FOOTER_PATHS = ["/login", "/signup", "/forgot-password"];
 
 function AppLayout() {
   const location = useLocation();
   const showFooter = !HIDE_FOOTER_PATHS.includes(location.pathname);
 
-  // Centralized scroll-to-top on every route change — react-router-dom's
-  // plain <BrowserRouter>/<Routes> (unlike a full page load, and unlike
-  // the separate data-router <ScrollRestoration/> API this app doesn't
-  // use) never touches window scroll position on its own, so without
-  // this every navigation — Navbar links, Footer's Quick Links, JobCard's
-  // navigate() calls, all of them — silently kept whatever scroll offset
-  // the previous page was at. One effect here, keyed on the pathname
-  // (not the full location, so an in-page query-string-only update, e.g.
-  // FindJob's own filter/search navigate() calls, doesn't yank the
-  // scroll position while a user is actively filtering results on the
-  // same page), covers every current and future route/link — no
-  // per-component scroll logic exists or should be added anywhere else.
+  // Scroll to top on navigation
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);

@@ -1,10 +1,4 @@
-// Deterministic static verification for Phase 2E's protected-page UX:
-// AddJob/Profile/SavedJobs all guard on useAuth().isAuthenticated and
-// render the shared AuthRequired fallback instead of allowing a request
-// that's guaranteed to fail with a 401 — without introducing a generic
-// route-guard/wrapper system (this phase explicitly says not to build
-// one if the app doesn't need it; three simple inline checks don't
-// warrant one). Run via `node src/tests/testProtectedPages.js`.
+// Protected pages static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -56,9 +50,7 @@ console.log("\n[2] Each protected page's guard renders BEFORE any request that w
     const source = readSource(relPath);
     check(`${label} actually renders <AuthRequired`, source.includes("<AuthRequired"));
   }
-  // AddJob specifically: the guard must come before the form/its submit
-  // handler is reachable, not after — a textual "AuthRequired appears
-  // before the main authenticated return" check.
+  // Guard precedes form and submit
   const addJobSource = readSource("pages/AddJob.jsx");
   const guardIndex = addJobSource.indexOf("if (!isAuthenticated)");
   const formReturnIndex = addJobSource.lastIndexOf("return (");

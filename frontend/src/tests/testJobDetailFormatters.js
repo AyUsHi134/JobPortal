@@ -1,11 +1,4 @@
-// Deterministic verification for the Job Detail page's description
-// formatting (frontend/src/utils/jobDisplay.js's
-// sanitizeDescriptionText/descriptionToParagraphs, added in Phase 2D).
-// The shared location/salary/experience/remote/tech/source/date/
-// apply-link formatters JobDetail.jsx also uses are already covered by
-// src/tests/testJobDisplay.js (Phase 2C) — reused here unchanged, not
-// re-tested, since they are the exact same functions. Run via
-// `node src/tests/testJobDetailFormatters.js`.
+// Description formatting verification
 
 import { sanitizeDescriptionText, descriptionToParagraphs } from "../utils/jobDisplay.js";
 

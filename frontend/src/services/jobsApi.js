@@ -1,10 +1,6 @@
 import { apiClient } from "./api.js";
 
-// The exact query parameters GET /api/jobs supports (BACKEND_API_CONTRACT.md
-// §3). Kept as an explicit allowlist — mirroring the same "never forward
-// unrecognized keys" philosophy the backend itself uses for its own request
-// whitelisting — rather than blindly spreading whatever a future caller
-// (e.g. Phase 2C's filter UI) passes in.
+// Allowlist of supported query params
 const JOB_QUERY_PARAM_KEYS = [
   "q",
   "experience_level",
@@ -21,15 +17,7 @@ const JOB_QUERY_PARAM_KEYS = [
   "limit",
 ];
 
-/**
- * Builds a clean params object for GET /api/jobs from a loose `filters`
- * object, omitting any key that isn't one of the backend's own recognized
- * parameters and any value that's undefined/null/empty-string (so callers
- * can pass a full filter-state object, e.g. `{q: "", location: "Pune"}`,
- * without every unset field turning into a literal `?q=` in the request).
- * Exported so Phase 2C's filter UI can build/validate its own params
- * against the same logic without duplicating this list.
- */
+/** Builds clean params object */
 export function buildJobQueryParams(filters = {}) {
   const params = {};
   for (const key of JOB_QUERY_PARAM_KEYS) {
@@ -40,50 +28,31 @@ export function buildJobQueryParams(filters = {}) {
   return params;
 }
 
-/**
- * GET /api/jobs — search/filter/sort/pagination, per BACKEND_API_CONTRACT.md
- * §3. Returns `{ jobs, pagination, guestLimitReached }` (already unwrapped
- * from the backend's `{success, data, pagination, guestLimitReached}`
- * envelope) — callers never need to know about the envelope.
- * `guestLimitReached` is the backend-enforced guest job-view limit flag
- * (backend/controllers/jobs.js) — see hooks/useGuestJobLimit.js. Calling
- * with no `filters` reproduces today's call sites' behavior exactly (a
- * plain "give me jobs" request), which means the backend's own default
- * pagination (page 1, limit 20) applies — see PHASE_2B_REPORT.md for why
- * this phase does not change that.
- */
+/** Lists jobs, returns unwrapped result */
 export async function listJobs(filters = {}) {
   const { data } = await apiClient.get("/api/jobs", { params: buildJobQueryParams(filters) });
   return { jobs: data.data, pagination: data.pagination, guestLimitReached: data.guestLimitReached };
 }
 
-/**
- * GET /api/jobs/:id — per BACKEND_API_CONTRACT.md §4. Returns the job
- * object directly (unwrapped from `{success, data}`).
- */
+/** Gets one job, unwrapped */
 export async function getJobById(id) {
   const { data } = await apiClient.get(`/api/jobs/${id}`);
   return data.data;
 }
 
-/**
- * POST /api/jobs — requires authentication (the apiClient's request
- * interceptor attaches the token automatically if the caller is logged
- * in; if not, the backend correctly responds 401 — see
- * BACKEND_API_CONTRACT.md §5). Returns the created job object.
- */
+/** Creates job, requires auth */
 export async function createJob(jobData) {
   const { data } = await apiClient.post("/api/jobs", jobData);
   return data.data;
 }
 
-/** PUT /api/jobs/:id — requires authentication. Returns the updated job object. */
+/** Updates job, requires auth */
 export async function updateJob(id, jobData) {
   const { data } = await apiClient.put(`/api/jobs/${id}`, jobData);
   return data.data;
 }
 
-/** DELETE /api/jobs/:id — requires authentication. Resolves with no value on success (204). */
+/** Deletes job, requires auth */
 export async function deleteJob(id) {
   await apiClient.delete(`/api/jobs/${id}`);
 }

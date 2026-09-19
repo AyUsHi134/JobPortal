@@ -4,34 +4,11 @@ import { createJob } from "../services/jobsApi.js";
 import { useAuth } from "../hooks/useAuth.js";
 import AuthRequired from "../components/AuthRequired/AuthRequired.jsx";
 
-// Phase 2B: transport only — routed through the centralized jobsApi, so
-// this now correctly sends the Authorization header POST /api/jobs
-// requires (BACKEND_API_CONTRACT.md §5) and surfaces the backend's real
-// error message instead of a blind "Failed to add job" for every
-// failure.
-//
-// Phase 2E: this endpoint requires authentication
-// (BACKEND_API_CONTRACT.md §5) but the page previously let an
-// unauthenticated visitor fill out the whole form only to have it fail
-// with a 401 on submit. It now shows the shared AuthRequired fallback
-// up front instead — the backend remains the real authorization
-// boundary either way; this is purely a "don't invite a request that's
-// guaranteed to fail" UX fix.
-//
-// Later fix: the form previously submitted a flat `location` string and
-// an unrelated `type` field — the backend's Job schema expects a
-// structured `location.raw` and a `job_type` field, and its
-// UPSERT_CONTENT_FIELDS whitelist (jobService.js) silently dropped
-// `type` entirely, so submissions reliably 400'd. `job_type` now matches
-// the whitelist key, and `location` is built as `{ raw: locationInput }`
-// on submit — the only subfield the schema requires
-// (display_name/city/state/country stay unset; there's no UI collecting
-// those separately). `source` needs no change here — createManualJob
-// (jobService.js) already auto-fills it server-side.
+// Uses jobsApi, requires auth
 export default function AddJob() {
   const { isAuthenticated } = useAuth();
   const [form, setForm] = useState({ title: "", company: "", location: "", job_type: "", description: "" });
-  const [status, setStatus] = useState("idle"); // idle | submitting | success | error
+  const [status, setStatus] = useState("idle"); // Form status values
   const [message, setMessage] = useState("");
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });

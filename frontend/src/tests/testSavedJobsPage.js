@@ -1,10 +1,4 @@
-// Deterministic + static verification for the Phase 2E Saved Jobs
-// feature: utils/savedJobsLoader.js#loadSavedJobs (the pure fetch-each-
-// id-individually orchestration, since BACKEND_API_CONTRACT.md §6/§7 has
-// no bulk "list my saved jobs" endpoint) and pages/SavedJobs/SavedJobs.jsx
-// itself (never requests another user's saved jobs, reuses JobCard
-// rather than duplicating its rendering, no direct fetch/axios, route is
-// actually registered). Run via `node src/tests/testSavedJobsPage.js`.
+// Saved Jobs feature verification
 
 import fs from "node:fs";
 import path from "node:path";

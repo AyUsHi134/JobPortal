@@ -1,12 +1,4 @@
-// Deterministic, static verification for the Phase 2G-4 Job Detail
-// display polish: the green theme reaching JobDetail.jsx/.scss, the
-// new duplicate-Remote-location suppression (ported from JobCard's
-// Phase 2G-2 rule), logical heading hierarchy, and router-based back
-// navigation. The underlying field formatters themselves (formatLocation,
-// formatSalary, formatExperience, etc.) are already covered by
-// testJobDisplay.js and testJobDetails.js — not re-tested here, only
-// their JobDetail-specific wiring where this phase actually changed it.
-// Run via `node src/tests/testJobDetailDisplay.js`.
+// Job detail display verification
 
 import fs from "node:fs";
 import path from "node:path";

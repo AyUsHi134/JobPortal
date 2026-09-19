@@ -1,13 +1,4 @@
-// Deterministic verification for the Job Detail page's fetch-lifecycle
-// state machine (frontend/src/utils/jobDetailState.js, Phase 2D):
-// loading/success/not-found/invalid-id/error classification, and that a
-// fresh FETCH_START always clears any previously loaded job (so a
-// superseded request's stale job is never left on screen while a new
-// one is in flight). No React rendering is involved — JobDescription.jsx
-// is a direct, unconditional pass-through of this reducer's output into
-// JSX branches, so testing the reducer IS testing the actual state
-// transitions the page relies on. Run via
-// `node src/tests/testJobDetailStates.js`.
+// Job detail state machine verification
 
 import {
   JOB_DETAIL_STATUS,

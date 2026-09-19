@@ -1,16 +1,4 @@
-// Deterministic, static verification for the Phase 2G-2 JobCard redesign
-// itself: source removal, the fixed badge area/order, the "Save" (never
-// "Log in to Save") label on a logged-out card, the single "View
-// Details" action replacing Apply/View Original, and a stable
-// badge -> company -> title -> location -> skills -> salary -> posted ->
-// actions layout order. No component-render library is installed in this
-// project (the same limitation every prior phase's report has stated),
-// so — exactly like testAccessibility.js / testResponsiveLayout.js /
-// testNavbar.js already do — this reads the real JobCard.jsx/.scss
-// source directly; since JobCard's rendering is a direct, unconditional
-// pass-through of these source decisions into JSX, verifying the source
-// IS verifying the actual rendering decision. Run via
-// `node src/tests/testJobCard.js`.
+// JobCard redesign static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -179,10 +167,7 @@ console.log("\n[15] Long real content wraps safely; the redesign introduces no h
   }
   check("JobCard.scss uses the shared wrap-safety mixin", /@include wrap-safely/.test(JOB_CARD_SCSS));
 
-  // Scoped to just the card's own top-level properties (before any
-  // nested selector) — a small fixed-size element like `.job-logo`
-  // legitimately keeps a bare pixel width (a 36px square icon isn't an
-  // overflow risk), so this must not be checked file-wide.
+  // Scoped to top-level properties
   const cardTopLevel = JOB_CARD_SCSS.slice(JOB_CARD_SCSS.indexOf(".modern-job-card {"), JOB_CARD_SCSS.indexOf(".job-company-row {"));
   check("no bare fixed pixel width without a max-width cap was introduced on the card container itself", !/(?<!max-)\bwidth:\s*\d+px/.test(cardTopLevel));
   check("the card still caps its own width responsively (max-width, not a bare fixed width)", /max-width:\s*340px/.test(cardTopLevel));

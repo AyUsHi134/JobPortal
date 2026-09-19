@@ -1,10 +1,4 @@
-// Deterministic verification for the Phase 2C filter/search state logic
-// (frontend/src/utils/jobDiscoveryState.js) plus its integration with
-// Phase 2B's jobsApi/buildJobQueryParams — proving each individual
-// filter and combinations of filters produce the correct GET /api/jobs
-// request. No real network call is made (the same mocked-adapter
-// technique Phase 2B's testJobsApi.js established). Run via
-// `node src/tests/testJobFilters.js`.
+// Filter state logic verification
 
 globalThis.localStorage = (() => {
   const store = new Map();

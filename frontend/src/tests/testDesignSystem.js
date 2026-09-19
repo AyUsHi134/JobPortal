@@ -1,17 +1,4 @@
-// Deterministic static verification for Phase 2G-7A: the global design
-// system enrichment (several intentional green shades instead of one
-// flat green, a warm-white card surface distinct from the sage page
-// background, restrained multi-hue badge/tag accent tokens) and the
-// redesigned navbar active-route treatment (a subtle pill, not the
-// previous heavy inset-box-shadow underline). Checks [11]-[17] cover the
-// later "still too flat / mostly one green + white" palette-richness
-// correction: two new tones ($primary-deep/$olive-accent) with a real
-// hue check (not just differing hex strings), a genuine 3-stop hero
-// gradient, a third homepage surface tier ($sage-color via
-// background.sage), tonal range across the navbar's own elements, Job
-// Detail's badges brought onto the same semantic tokens as JobCard's,
-// and About/Contact/Saved Jobs/Login's remaining leftover hardcoded hex
-// migrated onto shared tokens. Run via `node src/tests/testDesignSystem.js`.
+// Design system static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -71,11 +58,7 @@ console.log("\n[1] The palette contains several distinct, intentional green shad
 // ---------------------------------------------------------------------------
 console.log("\n[2] Backgrounds/surfaces are layered — a light sage page background distinct from a warm-white card surface");
 {
-  // 2G-7A correction: $background/$sage-color were deepened from their
-  // original near-white values (a ~7-point channel gap from
-  // $surface-color, which read as "barely different white") to a
-  // visibly-tinted sage-grey — re-verified here with a real numeric
-  // channel-distance check, not just "the two hex strings differ."
+  // Background deepened, channel-distance checked
   check("$background (light sage/grey-green page background) is defined", /\$background:\s*#e6ece2/i.test(VARIABLES));
   check("$surface-color (warm neutral white for cards/content) is defined and distinct from $background", /\$surface-color:\s*#fcfdfb/i.test(VARIABLES));
   check("$background and $surface-color are not the same value (page and card read as two layers, not one flat plane)", !/\$background:\s*#fcfdfb/i.test(VARIABLES));
@@ -105,9 +88,7 @@ console.log("\n[3] Restrained, non-neon semantic accent tokens exist for badges/
       new RegExp(`\\$badge-${name}-text:\\s*${text}`, "i").test(VARIABLES));
   }
 
-  // Not neon: none of the accent fills are a fully-saturated primary hue
-  // (e.g. pure #00f/#ff0/#0f0) — every fill token is a light, desaturated
-  // tint (each RGB channel comfortably above the neon range).
+  // Accent fills not neon
   const NEON_PATTERN = /\$badge-\w+-bg:\s*#(00f{3}|f{3}0{3}|0{3}f{3}|f00|0f0|00f)\b/i;
   check("no badge accent fill is a fully-saturated neon color", !NEON_PATTERN.test(VARIABLES));
 }
@@ -146,9 +127,7 @@ console.log("\n[7] Navbar active-route styling was redesigned into a restrained 
   check("the desktop active state no longer uses `box-shadow: inset 0 -2.5px 0` (the removed heavy underline)", !/box-shadow:\s*inset 0 -2\.5px 0/.test(desktopLinkBlock));
   check("the active state still reads the shared $primary-color/$accent-color tokens (consistent with the rest of the palette, not a one-off hex)", /&\.active\s*\{\s*color:\s*\$primary-color/.test(desktopLinkBlock));
 
-  // Mobile keeps its own distinct left-accent-bar treatment (a different,
-  // intentionally distinct pattern for a vertical column) — not removed,
-  // just re-themed onto the same tokens.
+  // Mobile keeps accent-bar treatment
   const tabletDownBlock = NAVBAR_SCSS.slice(NAVBAR_SCSS.indexOf("@include tablet-down"));
   check("mobile keeps its own left-accent-bar active treatment (a deliberately different pattern for a vertical list)", /li a\.active\s*\{\s*box-shadow:\s*inset 3px 0 0 \$primary-color/.test(tabletDownBlock));
 }
@@ -159,31 +138,17 @@ console.log("\n[8] Navbar surfaces were softened/layered to match the new design
   const navbarRuleStart = NAVBAR_SCSS.indexOf(".navbar {");
   const navbarTopBlock = NAVBAR_SCSS.slice(navbarRuleStart, navbarRuleStart + 400);
   check("the navbar's default (desktop) background uses the new $navbar-bg-desktop token, not $surface-color or a bare #fff literal", /background:\s*\$navbar-bg-desktop/.test(navbarTopBlock));
-  // A later glass-navbar pass first made $navbar-bg-desktop a translucent
-  // grey-tinted rgba (was the opaque hex #f5f7f5), then a still later pass
-  // switched its RGB channels to pure white — a semi-transparent WHITE
-  // layer, per this pass's explicit "whitish translucent glass" request —
-  // while keeping the same alpha-channel/backdrop-filter approach. Updated
-  // in place per this project's "revise the check for an intentional
-  // change" convention.
+  // Translucent white glass navbar
   check("$navbar-bg-desktop is a semi-transparent WHITE fill (rgba(255, 255, 255, ...), not a fully opaque fill and not grey-tinted)", /\$navbar-bg-desktop:\s*rgba\(\s*255,\s*255,\s*255,\s*0(\.\d+)?\s*\)/i.test(VARIABLES));
   check("$navbar-bg-desktop is distinct from $surface-color (cards stay warm off-white, the navbar reads a cooler subtle grey)", !/\$navbar-bg-desktop:\s*#fcfdfb/i.test(VARIABLES));
   check("Navbar.scss pairs the translucent background with an actual backdrop blur (with a -webkit- prefix for Safari), not just a lower-opacity color with no glass effect", /-webkit-backdrop-filter:\s*blur\(/.test(NAVBAR_SCSS) && /(?<!-webkit-)backdrop-filter:\s*blur\(/.test(NAVBAR_SCSS));
   check("the navbar's own border/shadow read from the new subtle tokens (not the old harder-edged values)", /border-bottom:\s*1px solid \$border-subtle/.test(navbarTopBlock));
 
-  // Mobile/tablet-down explicitly reverts to $surface-color — only the
-  // desktop background changed, per this phase's own "change ONLY the
-  // desktop navbar background" instruction.
+  // Mobile reverts to surface color
   const tabletDownBlock = NAVBAR_SCSS.slice(NAVBAR_SCSS.indexOf("@include tablet-down"));
   check("mobile/tablet-down reverts the navbar background to $surface-color (unchanged from before) — only the desktop background changed", /\.navbar\s*\{\s*background:\s*\$surface-color/.test(tabletDownBlock));
 
-  // Structural regressions would be caught by testResponsiveNavigation.js
-  // — this file only asserts the visual/token layer changed, not the
-  // flex/breakpoint mechanics (which are unchanged this phase).
-  // Window widened 400 -> 500: the `.navbar` rule's own declarations
-  // legitimately grew (translucent background + backdrop-filter + sticky
-  // positioning, all added in later passes) before reaching `display:
-  // flex` — not a magic-number workaround, just more real CSS ahead of it.
+  // Widened window for navbar CSS
   check("the desktop flex layout fix from Phase 2G-1 is still present (.navbar is still the flex container)", /^\.navbar \{[\s\S]{0,500}display:\s*flex/.test(NAVBAR_SCSS.slice(navbarRuleStart)));
 }
 
@@ -196,7 +161,7 @@ console.log("\n[9] No leftover purple/lavender hex anywhere in the global design
     "#b19bf9", "#d7c7ff", "#f5f1fc", "#7b59c6", "#b8a5f5", "#be9cff",
     "#6a0dad", "#7e30e1", "#6a23d4", "#462478", "#c3abfa", "#5f3dbf",
     "#a596c9", "#ebe3fb", "#2a223e", "#f5f5fc",
-    "#1b7a4a", "#145c38", "#e3f2e9", "#f7faf8", "#1f2723", "#6b7280", "#dce7e0", // the old flat-green 2G-1 values, also superseded
+    "#1b7a4a", "#145c38", "#e3f2e9", "#f7faf8", "#1f2723", "#6b7280", "#dce7e0", // Superseded old values
   ];
   for (const [label, source] of [
     ["_variables.scss", VARIABLES],
@@ -226,12 +191,7 @@ console.log("\n[11] 2G-7A palette-richness correction: two new, genuinely distin
   const toRgb = (hex) => [0, 2, 4].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
   const [deepR, , deepB] = toRgb("123c2a");
   const [oliveR, oliveG, oliveB] = toRgb("4f5c34");
-  // A real hue check, not just "the hex strings differ": $primary-deep's
-  // blue channel should sit clearly above its red channel (a cool,
-  // blue-leaning forest green, consistent with $primary-color's own
-  // family), while $olive-accent's should not (a warm, yellow-leaning
-  // olive) — this is what makes it a distinct HUE, not merely a
-  // different lightness of the same green.
+  // Real hue check
   check("$primary-deep is a cool, blue-leaning forest tone (blue channel > red channel)", deepB > deepR);
   check("$olive-accent is a warm, yellow-leaning tone (blue channel is the smallest of its 3 channels, unlike the cool forest family)", oliveB < oliveR && oliveB < oliveG);
 
@@ -247,18 +207,7 @@ console.log("\n[12] theme.js mirrors both new tones plus a third background tier
   check("MUI background.sage matches $sage-color, giving Home.jsx a real third tier to reference instead of a hardcoded hex", /background:\s*\{[^}]*sage:\s*"#dbe6d5"/i.test(THEME_JS));
 }
 
-// ---------------------------------------------------------------------------
-// A later redesign phase (post-2G-7C) deliberately replaced the old
-// full-width hero + wave-divider geometry with a compact dashboard-style
-// intro: a small rounded green-gradient card (headline/subtitle) sitting
-// beside — not underneath — a real search toolbar, both inside the normal
-// page flow (no more position:absolute/relative hero-wave anchoring, no
-// translateY overlap trick, no SVG wave). This is an intentional
-// revision of [13]/[13b]/[14] above (same "update the check in place
-// instead of forking a phase-numbered duplicate" pattern this project has
-// followed for every prior deliberate redesign, e.g. 2G-7C's badge-slot
-// revision in testJobCardTheme.js) — not a regression the old checks
-// should still catch.
+// Compact dashboard intro replaces hero
 console.log("\n[13] The intro card still uses the exact same diagonal (115deg) 3-stop gradient — deep forest -> medium natural green -> muted olive — just scoped to a small rounded card instead of a full-width hero band");
 {
   const GRADIENT_RE = /background:\s*\(theme\)\s*=>\s*\n?\s*`linear-gradient\(115deg, \$\{theme\.palette\.primary\.deep\} 0%, \$\{theme\.palette\.primary\.main\} 40%, \$\{theme\.palette\.oliveAccent\} 100%\)`/;
@@ -267,29 +216,15 @@ console.log("\n[13] The intro card still uses the exact same diagonal (115deg) 3
   check("the gradient is exactly a 3-stop structure (0%/40%/100%)", Boolean(HOME_JSX.match(GRADIENT_RE)) && (HOME_JSX.match(GRADIENT_RE)[0].match(/theme\.palette\.(primary\.deep|primary\.main|oliveAccent)/g) || []).length === 3);
   check("the old vertical 180deg 5-stop gradient is (still) gone", !/linear-gradient\(180deg/.test(HOME_JSX));
 
-  // The compact card is a genuinely small, rounded element now — not a
-  // full-bleed section: it carries its own borderRadius, and is a child of
-  // the width-bounded LEFT COLUMN wrapper (which also now holds Search
-  // above it and the "Why Choose Us" card below it — see [14] below — so
-  // the maxWidth constraint lives one level up, on that shared column
-  // wrapper, rather than on the gradient card's own immediate Box).
+  // Compact card, bounded column
   const gradientIdx = HOME_JSX.indexOf("linear-gradient(115deg");
   const cardBlockStart = HOME_JSX.lastIndexOf("<Box", gradientIdx);
   const cardBlock = HOME_JSX.slice(cardBlockStart, gradientIdx);
-  // Anchored to the left column wrapper's own flex-basis literal (rather
-  // than a fixed raw-character lookback window) since Search now renders
-  // ahead of the gradient card inside that same wrapper (SS3 composition,
-  // see [14]) — a fixed-width window would no longer reliably span from
-  // the wrapper's maxWidth down to the gradient regardless of how much
-  // markup sits between them.
+  // Anchored to column wrapper
   const columnWrapperStart = HOME_JSX.lastIndexOf('flex: "1 1 280px"', gradientIdx);
   const columnWrapperBlock = HOME_JSX.slice(Math.max(0, columnWrapperStart), gradientIdx);
   check("the gradient card has its own border radius (a rounded card, not a square full-width band)", /borderRadius:\s*3/.test(cardBlock));
-  // Widened 340 -> 400 -> 460 across two visual-polish passes, then
-  // narrowed back to 400 in a later balance pass (to give Recent Jobs
-  // slightly more horizontal space while the Career/Why-Choose-Us cards'
-  // heights/typography stayed put) — still bounded, not stretched
-  // full-page-width.
+  // Column width history, bounded
   check("the gradient card's column is width-bounded (maxWidth), not stretched full-page-width", /maxWidth:\s*\{\s*md:\s*400\s*\}/.test(columnWrapperBlock));
 }
 
@@ -302,16 +237,7 @@ console.log("\n[13b] The old full-bleed wave/curve SVG divider is gone entirely 
   check("no leftover translateY overlap hack remains (nothing needs to visually straddle a wave any more)", !/transform:\s*"translateY/.test(HOME_JSX));
 }
 
-// ---------------------------------------------------------------------------
-// SS3 composition (revising SS1/SS2 above, same "update the check in place"
-// convention): the search toolbar no longer has its own full-width row
-// above the sage section at all — it has moved INSIDE the sage two-column
-// area, as the first element of the narrow LEFT column, ahead of the
-// gradient card and "Why Choose Us" (Search -> Career -> Why Choose Us),
-// matching a visual mockup's "search at the top of a narrow sidebar"
-// proportions. The old standalone white Container maxWidth="md" shell
-// above the sage section is gone entirely. The RIGHT column (Recent Jobs)
-// is still the row-sibling of that whole LEFT column, unchanged.
+// Search moved into left column
 console.log("\n[14] Search now sits INSIDE the sage two-column area as the first element of the LEFT column (Search -> Career card -> Why Choose Us); Recent Jobs stays the row-sibling RIGHT column — still the same unchanged handleHeroSearch/validateSearchQuery handoff, and the old standalone white search shell above the sage section is gone");
 {
   const formIdx = HOME_JSX.indexOf('component="form"');
@@ -322,12 +248,7 @@ console.log("\n[14] Search now sits INSIDE the sage two-column area as the first
   check("the search form now sits INSIDE the sage two-column area (moved out of its old standalone shell above it)", formIdx !== -1 && sageBoxIdx !== -1 && formIdx > sageBoxIdx);
   check("the search form comes BEFORE the gradient career card in DOM order — it's the first element of the LEFT column, not the row-sibling of Recent Jobs", formIdx !== -1 && gradientIdx !== -1 && formIdx < gradientIdx);
   check("the intro gradient card lives INSIDE the sage box, i.e. it is paired with Recent Jobs as the LEFT column's second element", sageBoxIdx !== -1 && gradientIdx !== -1 && sageBoxIdx < gradientIdx);
-  // Footer is a single global instance rendered once by App.jsx, below
-  // <Routes> — Home.jsx has never rendered its own <Footer>, so it can
-  // never land between these sections by construction. Updated from a
-  // stale check that looked for `<Footer` inside Home.jsx's own source
-  // (always -1, since Home.jsx isn't where Footer lives) to instead
-  // confirm that non-duplication directly.
+  // Footer rendered once globally
   check("Home.jsx renders no <Footer> of its own — it's a single global instance in App.jsx, so it structurally can't ever sit between Home's own sections", formIdx !== -1 && recentJobsHeadingIdx !== -1 && formIdx < recentJobsHeadingIdx && !/<Footer/.test(HOME_JSX));
   check("the search form is still a real <form> wired to the unchanged handleHeroSearch handler", /component="form"[\s\S]{0,40}onSubmit=\{handleHeroSearch\}/.test(HOME_JSX));
   check("no separate full-bleed white search shell remains above the sage section (the old Container maxWidth=\"md\" band is gone; the search now renders on the sage background as part of the left column)", !/Container maxWidth="md"/.test(HOME_JSX));
@@ -336,15 +257,7 @@ console.log("\n[14] Search now sits INSIDE the sage two-column area as the first
   check("the search placeholder text and validation wiring are untouched by the layout changes", /placeholder="e\.g\. React Developer"/.test(HOME_JSX) && /onSubmit=\{handleHeroSearch\}/.test(HOME_JSX));
 }
 
-// ---------------------------------------------------------------------------
-// A later visual-polish pass deliberately left-aligned "Recent Jobs" (to
-// align with the left edge of the job grid beneath it, in the right/main
-// column) instead of centering it across that column. A still later pass
-// removed the short accent-bar underline that used to sit beneath it
-// entirely (heading text/color/alignment/typography untouched) and pulled
-// the heading's own mb in slightly, so the job grid now sits closer to the
-// heading than it used to. Updated in place for both intentional changes
-// (same convention as the other revisions above).
+// Heading left-aligned, accent removed
 console.log("\n[14b] The LEFT-aligned 'Recent Jobs' heading no longer has an accent-bar underline beneath it, and sits closer to the job grid than before");
 {
   const headingTagIdx = HOME_JSX.indexOf('variant="h5" fontWeight={700} color="secondary.main" align="left"');
@@ -392,9 +305,7 @@ console.log("\n[16] Job Detail's badges still read from the shared $badge-* toke
     const re = new RegExp(`${selector.replace(".", "\\.")}\\s*\\{\\s*background:\\s*${bgToken};\\s*color:\\s*${textToken};`);
     check(`Job Detail's ${selector} still uses the shared $badge-* token pair (untouched by the JobCard-only visual correction)`, re.test(JOBDETAIL_SCSS));
   }
-  // JobCard's own badge colors are verified separately in
-  // testJobCardTheme.js (now exact reference hex values, not these
-  // tokens) — not re-checked here to avoid duplicating that coverage.
+  // Badge colors verified elsewhere
 }
 
 // ---------------------------------------------------------------------------

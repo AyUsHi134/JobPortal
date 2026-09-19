@@ -1,15 +1,4 @@
-// Deterministic, static verification of the Phase 2G-5 audit's actual
-// finding: that no password-reset/account-recovery architecture exists
-// anywhere in this project — not on the frontend, not on the backend.
-// Unlike this project's other test files (which verify frontend source
-// only), this file also reads the real backend source (read-only, never
-// modified) because "backend is the source of truth for the actual
-// password-reset contract" was this phase's own explicit instruction —
-// asserting the audit's conclusion only against frontend code would not
-// actually prove the backend has no such endpoint. These checks exist so
-// a future phase can't silently reintroduce a fake/partial reset flow
-// (e.g. a frontend call to an endpoint that still doesn't exist) without
-// this suite catching it. Run via `node src/tests/testAuthRecovery.js`.
+// Verifies no password-reset architecture
 
 import fs from "node:fs";
 import path from "node:path";

@@ -19,22 +19,12 @@ import {
 } from "../../utils/jobDiscoveryState.js";
 import "./FindJob.scss";
 
-// Phase 2C: the real Job Discovery page — search, filters, sorting, and
-// server-side pagination against GET /api/jobs, replacing the old
-// "fetch everything once, filter the in-memory array" pattern
-// (FRONTEND_AUDIT.md §6/§14). All the actual state-transition rules
-// (reset-to-page-1-on-filter-change, preserve-filters-on-page-change,
-// the loading/success/error state machine, URL <-> filters conversion)
-// live in utils/jobDiscoveryState.js as plain, independently-tested
-// functions — this component only wires them to React state and JSX.
+// Job discovery page, server-side filtering
 export default function FindJob() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { guestLimitReached, recordJobsResponse } = useGuestJobLimit();
 
-  // Read the initial filter state from the URL exactly once, so a
-  // shared/refreshed search link reproduces the same query. See
-  // utils/jobDiscoveryState.js's header comment for why this is
-  // one-directional (filters -> URL) rather than a full two-way binding.
+  // Read initial filters from URL
   const [filters, setFilters] = useState(() => searchParamsToFilters(Object.fromEntries(searchParams)));
   const [searchInput, setSearchInput] = useState(filters.q);
   const [locationInput, setLocationInput] = useState(filters.location);
@@ -43,10 +33,7 @@ export default function FindJob() {
   const debouncedSearch = useDebouncedValue(searchInput, 400);
   const debouncedLocation = useDebouncedValue(locationInput, 400);
 
-  // Free-text inputs are debounced before they become part of `filters`
-  // (and therefore before they trigger a request) — see
-  // hooks/useDebouncedValue.js for why. Discrete controls (the <select>s
-  // below) update `filters` immediately on change instead.
+  // Text inputs debounced; selects immediate
   useEffect(() => {
     setFilters((prev) => (prev.q === debouncedSearch ? prev : applyFilterChange(prev, { q: debouncedSearch })));
   }, [debouncedSearch]);
@@ -55,10 +42,7 @@ export default function FindJob() {
     setFilters((prev) => (prev.location === debouncedLocation ? prev : applyFilterChange(prev, { location: debouncedLocation })));
   }, [debouncedLocation]);
 
-  // The single fetch effect: any change to `filters` (search settling,
-  // a filter/sort selection, or a page change) triggers exactly one
-  // request. Cancellation guards against a slow earlier request
-  // resolving after a newer one has already started.
+  // Single fetch effect with cancellation
   useEffect(() => {
     let cancelled = false;
     dispatch({ type: "FETCH_START" });
@@ -77,9 +61,7 @@ export default function FindJob() {
     };
   }, [filters]);
 
-  // Keep the URL in sync so the current search is shareable/refreshable.
-  // `replace: true` avoids piling up a browser-history entry per
-  // keystroke/filter click.
+  // Sync URL, replace history
   useEffect(() => {
     setSearchParams(filtersToSearchParams(filters), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,12 +75,7 @@ export default function FindJob() {
     setFilters(buildResetFilters());
   };
 
-  // Phase 2G-7B: "Clear Search" (the no-results state's own action, §below)
-  // clears only the text query — reusing the same applyFilterChange rule
-  // every other filter already goes through, never a second/duplicated
-  // state-transition path — so a user who typed the wrong keyword but had
-  // a filter (e.g. Experience: Senior) selected on purpose doesn't lose
-  // it. "Browse All Jobs" reuses the existing full handleReset above.
+  // Clear Search keeps other filters
   const handleClearSearch = () => {
     setSearchInput("");
     setFilters((prev) => applyFilterChange(prev, { q: "" }));
@@ -118,13 +95,7 @@ export default function FindJob() {
 
   return (
     <div className="findjob-page">
-      {/* Navbar + Search merged into one continuous white top shell (no
-          sage gap between them, matching Home.jsx's same treatment): this
-          full-bleed band sits directly under the navbar (whose own
-          border-bottom already supplies the "still visually
-          distinguishable" divider — untouched in Navbar.scss). Every
-          input/select below is the exact same debounced/state-backed
-          control this page always had; only the outer wrapper changed. */}
+      {/* Merged navbar and search shell */}
       <div className="findjob-topbar">
         <form className="findjob-toolbar" onSubmit={(e) => e.preventDefault()}>
           <div className="toolbar-field toolbar-field--search">
@@ -181,10 +152,7 @@ export default function FindJob() {
         </form>
       </div>
 
-      {/* Two-column dashboard area (SS2 composition): the LEFT column now
-          carries the compact green "Find Jobs" intro card stacked directly
-          above the existing Filters panel; the RIGHT/main column is the
-          job-listings heading + real job-card grid, unchanged in behavior. */}
+      {/* Two-column dashboard layout */}
       <div className="findjob-container">
         <aside className="findjob-sidebar">
           <div className="findjob-sidebar__intro">
@@ -296,16 +264,13 @@ export default function FindJob() {
                 <span className="pagination-status" aria-live="polite">
                   Page {state.pagination.page} of {state.pagination.totalPages} ({state.pagination.total} jobs)
                 </span>
-                <button type="button" onClick={handleNextPage} disabled={!canGoNext(state.pagination)}>
+                <button type="button" onClick={handleNextPage} disabled={!canGoNext(state.pagination) || guestLimitReached}>
                   Next
                 </button>
               </div>
             )}
 
-            {/* Same backend-enforced guest job-view limit Home.jsx reacts to
-                (`guestLimitReached`, backend/controllers/jobs.js) — shown here
-                without touching this page's own filter/search/pagination
-                logic above, which stays governed purely by `state.pagination`. */}
+            {/* Guest limit panel */}
             {guestLimitReached && <GuestSignupCta />}
           </>
         )}

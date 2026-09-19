@@ -1,22 +1,10 @@
 import axios from "axios";
 
-// Base URL of the backend API. Configurable via VITE_API_URL (see
-// .env.example) for local dev overrides and future non-localhost
-// deployments — falls back to the same localhost:5000 value every
-// component already hardcoded before this phase, so local dev behavior
-// is unchanged by default. `import.meta.env?.VITE_API_URL` is safe to
-// read outside Vite too (e.g. from the plain-Node deterministic test
-// scripts under src/tests/) — `import.meta.env` is simply `undefined`
-// there, and optional chaining falls through to the default.
+// Backend base URL, env-configurable
 const DEFAULT_BASE_URL = "http://localhost:5000";
 export const API_BASE_URL = import.meta.env?.VITE_API_URL || DEFAULT_BASE_URL;
 
-// ---------------------------------------------------------------------------
-// Auth storage — the single source of truth for the persisted JWT + user.
-// Deliberately plain functions (not React state) so both the axios
-// interceptor below and AuthContext can read/write the same underlying
-// storage without a circular dependency between this module and React.
-// ---------------------------------------------------------------------------
+// Auth storage
 
 const AUTH_STORAGE_KEY = "jobportal_auth";
 
@@ -24,7 +12,7 @@ function hasLocalStorage() {
   return typeof localStorage !== "undefined";
 }
 
-/** Returns `{ token, user }` if a valid session is stored, else `null`. Never throws. */
+/** Returns stored session or null */
 export function getStoredAuth() {
   if (!hasLocalStorage()) return null;
   try {
@@ -34,9 +22,7 @@ export function getStoredAuth() {
     if (!parsed || typeof parsed !== "object" || !parsed.token) return null;
     return { token: parsed.token, user: parsed.user ?? null };
   } catch {
-    // A malformed/legacy stored value (e.g. from before this phase, when
-    // only {name,email} was ever stored under a different key) must never
-    // crash the app — treat it as "not logged in."
+    // Malformed value means logged out
     return null;
   }
 }
@@ -55,18 +41,11 @@ export function getToken() {
   return getStoredAuth()?.token ?? null;
 }
 
-// ---------------------------------------------------------------------------
-// 401 subscription — lets AuthContext synchronously clear its React state
-// when any authenticated request comes back unauthorized (e.g. an expired
-// token), without this module importing React/AuthContext (keeping the
-// service layer independent of page/UI-state logic, per this phase's
-// explicit instruction). No redirect is performed here — see the response
-// interceptor below.
-// ---------------------------------------------------------------------------
+// 401 subscription
 
 const unauthorizedListeners = new Set();
 
-/** Registers a callback to run whenever a request fails with 401. Returns an unsubscribe function. */
+/** Registers 401 callback, returns unsubscribe */
 export function onUnauthorized(callback) {
   unauthorizedListeners.add(callback);
   return () => unauthorizedListeners.delete(callback);
@@ -76,19 +55,7 @@ function notifyUnauthorized() {
   for (const callback of unauthorizedListeners) callback();
 }
 
-// ---------------------------------------------------------------------------
-// Safe error normalization — converts any axios failure (validation error,
-// auth failure, network failure, unexpected 500) into one small, predictable
-// shape every caller can rely on, without ever leaking a raw stack trace,
-// Mongo/axios internals, or request configuration (e.g. headers, which could
-// contain the Authorization token). The backend itself already never sends
-// that kind of detail (verified in PHASE_1I5_REPORT.md), but this is a
-// deliberate second layer of defense on the client, and — more importantly
-// — it also papers over BACKEND_API_CONTRACT.md §8's own documented
-// inconsistency (the backend uses three different error-key conventions:
-// `msg`, `error`, `message`), so callers never need to know which one a
-// given endpoint uses.
-// ---------------------------------------------------------------------------
+// Safe error normalization
 
 export class ApiError extends Error {
   constructor(message, { status = null, details = null } = {}) {
@@ -108,11 +75,7 @@ function extractMessage(data) {
   return data.error || data.msg || data.message || GENERIC_ERROR_MESSAGE;
 }
 
-// `Retry-After` (RFC 9110 §10.2.3) is a plain integer number of seconds on
-// a 429 — express-rate-limit sets it via its own `standardHeaders` option
-// (confirmed present on both backend limiters). Returns null when the
-// header is absent or not a valid non-negative number, so callers always
-// have a safe fallback rather than needing to guard against NaN/undefined.
+// Parses Retry-After seconds
 function parseRetryAfterSeconds(headers) {
   const raw = headers?.["retry-after"];
   if (raw === undefined || raw === null) return null;
@@ -120,16 +83,7 @@ function parseRetryAfterSeconds(headers) {
   return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
 }
 
-// A 429's body is plain text by default (express-rate-limit's own
-// `response.send(message)`, not JSON) — `extractMessage`'s own
-// typeof-object check already falls back to the generic message for that
-// case, which is exactly what previously surfaced as an unhelpful
-// "Something went wrong" for a rate limit. This still prefers a real
-// backend-supplied JSON message when one is present (so a future/other
-// endpoint's own structured 429 body still works via the same three
-// error-key conventions this file already normalizes), and only falls
-// back to a rate-limit-specific message — with the actual wait time when
-// known — when the body isn't a useful object.
+// 429 gets specific message
 function buildRateLimitMessage(data, retryAfterSeconds) {
   if (data && typeof data === "object") {
     const backendMessage = data.error || data.msg || data.message;
@@ -153,28 +107,15 @@ function normalizeError(error) {
     return new ApiError(extractMessage(data), { status, details });
   }
   if (error.request) {
-    // The request was made but no response was ever received (offline,
-    // CORS failure, backend down, etc.) — never echo axios's own message
-    // here, since it can include the request URL/config.
+    // No response received
     return new ApiError(NETWORK_ERROR_MESSAGE, { status: null });
   }
   return new ApiError(GENERIC_ERROR_MESSAGE, { status: null });
 }
 
-// ---------------------------------------------------------------------------
-// The centralized HTTP client. Every service module (authApi.js, jobsApi.js,
-// userApi.js) issues requests through this one instance — no component or
-// service function should construct its own axios instance or call fetch
-// directly.
-// ---------------------------------------------------------------------------
+// Centralized HTTP client
 
-// `withCredentials: true` is required for the backend's httpOnly `guestId`
-// cookie (backend/controllers/jobs.js's guest job-view tracking) to ever
-// be stored/sent by the browser at all — frontend and backend run on
-// different origins (localhost:5173 vs localhost:5000) in dev, and a
-// cross-origin XHR/fetch only persists/attaches a `Set-Cookie` response
-// when the request itself opts into credentialed mode; the backend's own
-// `cors({ credentials: true })` (backend/index.js) already allows this.
+// Credentials needed for guest cookie
 export const apiClient = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 
 apiClient.interceptors.request.use((config) => {
@@ -190,11 +131,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Token expiry handling (per this phase's explicit scope — no
-      // refresh-token logic, since the backend contract doesn't offer
-      // one): clear the stale token/state and let the request fail
-      // normally. The caller decides what the user sees next; this layer
-      // never redirects on its own, avoiding any risk of a redirect loop.
+      // Clear stale token on 401
       clearStoredAuth();
       notifyUnauthorized();
     }

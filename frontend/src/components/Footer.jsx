@@ -5,16 +5,13 @@ import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import "./Footer.scss";
 
-// github: the project's own real repository, read from `git remote get-url
-// origin` (https://github.com/AyUsHi134/JobPortal.git) — not invented.
-// linkedin: the real profile URL supplied directly by the project owner.
+// Real repository and profile URLs
 const SOCIAL_LINKS = {
   github: "https://github.com/AyUsHi134/JobPortal",
   linkedin: "https://www.linkedin.com/in/ayushi-singh-dev/",
 };
 
-// Real, already-registered App.jsx routes only, same as Navbar.jsx's own
-// nav items.
+// Real registered routes only
 const QUICK_LINKS = [
   { label: "Home", to: "/" },
   { label: "Find Jobs", to: "/jobs" },
@@ -24,16 +21,10 @@ const QUICK_LINKS = [
 
 export default function Footer() {
   const [newsletterEmail, setNewsletterEmail] = useState("");
-  // null | "unavailable" — no other value exists, since no real request
-  // is ever attempted (see handleNewsletterSubmit below).
+  // null or unavailable
   const [newsletterStatus, setNewsletterStatus] = useState(null);
 
-  // UI-only for now: no backend endpoint for job-alert subscriptions
-  // exists yet, so this deliberately makes no network call and never
-  // claims success. When a real endpoint exists, the one change needed
-  // here is awaiting a new service function and setting newsletterStatus
-  // from its real result — nothing else about this form's structure needs
-  // to change for that to slot in cleanly.
+  // UI-only, no backend endpoint
   const handleNewsletterSubmit = (e) => {
     e.preventDefault();
     setNewsletterStatus("unavailable");

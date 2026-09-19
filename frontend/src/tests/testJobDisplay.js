@@ -1,13 +1,4 @@
-// Deterministic verification for frontend/src/utils/jobDisplay.js
-// (Phase 2C): the pure formatting functions JobCard.jsx (and, in a later
-// phase, JobDetail.jsx) use to render a public Job object honestly —
-// never fabricating a value for missing/null/unknown data. No React
-// rendering is involved (no test-rendering library is installed); since
-// JobCard's rendering is a direct, unconditional pass-through of these
-// functions' return values into JSX, testing the functions IS testing
-// the actual rendering decision, not a reimplementation of it — see
-// PHASE_2C_REPORT.md §10 for the full reasoning. Run via
-// `node src/tests/testJobDisplay.js`.
+// Display formatters verification
 
 import {
   formatLocation,

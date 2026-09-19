@@ -6,20 +6,7 @@ import { getProfile, updateProfile } from "../services/userApi.js";
 import AuthRequired from "../components/AuthRequired/AuthRequired.jsx";
 import { buildProfileUpdates } from "../utils/profileUi.js";
 
-// Phase 2E: previously 100% hardcoded mock data that never called the
-// backend at all (FRONTEND_AUDIT.md §2/§10 — the exact gap this phase
-// closes). Now loads the real authenticated user via
-// GET /api/user/profile and submits edits via PUT /api/user/profile
-// (BACKEND_API_CONTRACT.md §7), both through the centralized userApi
-// service — identity is carried entirely by the JWT the apiClient
-// attaches; no user id is ever read from a URL/body field, so this page
-// can only ever load/edit the logged-in user's own account. The old
-// mock's disabled "Email" field and its non-functional file-picker for a
-// document attachment are removed: the real contract accepts an email
-// change (both `name`/`email` are editable per §7), and there is no
-// attachment-upload endpoint anywhere in the backend contract to wire
-// that control to — a control with no possible effect would just be a
-// second, still-fake mock, not a fix.
+// Real profile load and save
 export default function Profile() {
   const { isAuthenticated } = useAuth();
 
@@ -28,7 +15,7 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({ name: "", email: "" });
 
-  const [saveState, setSaveState] = useState("idle"); // idle | saving | success | error
+  const [saveState, setSaveState] = useState("idle"); // Form status values
   const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
@@ -45,9 +32,7 @@ export default function Profile() {
       })
       .catch((err) => {
         if (cancelled) return;
-        // A normalized, safe message only (services/api.js) — never a
-        // raw Axios error or backend internal detail, regardless of
-        // whether this was a 401/404/500/network failure.
+        // Normalized safe message only
         setLoadError(err.message || "Could not load your profile right now.");
         setStatus("error");
       });
@@ -77,11 +62,7 @@ export default function Profile() {
       setForm({ name: updated.name || "", email: updated.email || "" });
       setSaveState("success");
     } catch (err) {
-      // Covers BACKEND_API_CONTRACT.md §7's real failure modes: 400
-      // "Email already in use.", 401 (session expired mid-edit — the
-      // apiClient interceptor has already cleared stale auth by the time
-      // this catch runs), 404 "User not found" (edge case), 500. The
-      // normalized message is always safe to show directly.
+      // Covers real failure modes
       setSaveError(err.message || "Could not update your profile right now.");
       setSaveState("error");
     }

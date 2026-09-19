@@ -1,28 +1,17 @@
 // src/pages/Login/Login.jsx
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { login as loginRequest } from "../../services/authApi.js";
 import "./Login.scss";
 import eyeIcon from "../../assets/eye.png";
 import eyeOffIcon from "../../assets/eye-off.png";
 
-// Phase 2F: UI/UX polish only — the request/response handling below is
-// byte-for-byte the same call shape Phase 2B established
-// (`loginRequest` -> `login(token, user)` -> `err.message`). Fixed:
-// the form previously used a fixed `width: 400px` with no `max-width`
-// guard (Login.scss), which overflowed horizontally on any viewport
-// narrower than ~400px + padding — a real, concrete mobile bug, not a
-// cosmetic one. Added real `<label>` elements (inputs previously relied
-// on `placeholder` alone, which isn't a reliable accessible name and
-// disappears once typing starts), a submitting/disabled state on the
-// button (nothing previously stopped a double-click from firing two
-// login requests), and made the password-visibility toggle a real
-// `<button>` instead of a clickable `<img>` (an `onClick` on a plain
-// image is invisible to keyboard/assistive-tech users).
+// UI polish, same request handling
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,11 +27,9 @@ export default function Login() {
     try {
       const { token, user } = await loginRequest(email, password);
       login(token, user);
-      navigate("/profile");
+      navigate(location.state?.from || "/profile");
     } catch (err) {
-      // err is an ApiError from services/api.js — its .message is already
-      // a safe, human-readable string regardless of which error-key
-      // convention this endpoint used (BACKEND_API_CONTRACT.md §8).
+      // err message already safe
       setError(err.message || "Login failed");
       setIsSubmitting(false);
     }
@@ -97,7 +84,7 @@ export default function Login() {
           </Link>
           <p>
             Don’t have an account?{" "}
-            <Link to="/signup" className="signup-link">
+            <Link to="/signup" state={{ from: location.state?.from }} className="signup-link">
               Sign up
             </Link>
           </p>

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   formatLocation,
   formatSalary,
@@ -16,43 +16,16 @@ import { useSavedJobState } from "../../hooks/useSavedJobState.js";
 import { getSaveButtonState } from "../../utils/savedJobUi.js";
 import "./JobDetail.scss";
 
-// Phase 2D: rebuilt against the finalized normalized Job schema
-// (BACKEND_API_CONTRACT.md §2). Previously assumed `job.location` was a
-// flat string and rendered an internal hiring-stage field the backend
-// never returns (per BACKEND_API_CONTRACT.md §2 — that block simply
-// never fired), plus rendered the raw description via an unsanitized
-// raw-HTML-injection API (a confirmed XSS risk, FRONTEND_AUDIT.md
-// §8/§10). All field rendering now goes through the same
-// utils/jobDisplay.js formatters JobCard.jsx (Phase 2C) already uses —
-// every formatter returns `null` for missing/unknown data, so this
-// component never fabricates a value; a `null` return simply omits that
-// piece of UI. `job` is always a fully-loaded, real job object here —
-// loading/error/not-found states are handled one level up, in
-// JobDescription.jsx.
-//
-// Phase 2E: added a Save action alongside Apply, using the same
-// hooks/useSavedJobState.js + utils/savedJobUi.js pair JobCard.jsx uses —
-// no saved-state logic was duplicated or reimplemented here.
-//
-// Phase 2G-4: brought into the green theme, applied JobCard's Phase
-// 2G-2 duplicate-Remote-location suppression here too (a confirmed-
-// remote job's location line no longer repeats a contentless "Remote"
-// the badge already states), and simplified the single Apply action's
-// label to read as the one clear thing it is (see PHASE_2G4_REPORT.md
-// §5 for confirmation this page never had a second, separate original-
-// listing control to begin with). A missing/invalid apply_link now
-// renders as a real disabled <button> in the Apply action's own slot,
-// rather than italic paragraph text elsewhere in the layout, so a guest
-// scanning the action row sees an honest disabled control exactly where
-// the working one would be, not a separate aside.
+// Job detail on finalized schema
 export default function JobDetail({ job }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, isSaved, isSaving, error: saveError, save, unsave } = useSavedJobState(job._id);
   const saveButton = getSaveButtonState({ isAuthenticated, isSaved, isSaving });
 
   const handleSaveClick = () => {
     if (saveButton.action === "login") {
-      navigate("/login");
+      navigate("/login", { state: { from: location.pathname + location.search } });
       return;
     }
     if (saveButton.action === "save") {

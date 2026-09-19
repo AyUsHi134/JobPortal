@@ -1,10 +1,4 @@
-// Deterministic, static verification for the Phase 2G-3 homepage content
-// pass: unsupported marketing claims removed (item 19), the fake/absent
-// newsletter feature removed rather than faked (item 20), the homepage
-// reuses the single Phase 2G-2 JobCard rather than a second
-// implementation (item 18), and the green theme now reaches Home.jsx/
-// Footer.jsx (this phase's own "footer and homepage supporting content"
-// requirement). Run via `node src/tests/testHomepageContent.js`.
+// Homepage content static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -90,24 +84,10 @@ console.log("\n[5] The green theme now reaches the homepage's supporting content
     const offenders = KNOWN_PURPLE_HEXES.filter((hex) => source.toLowerCase().includes(hex));
     check(`${label} contains no old purple hex value`, offenders.length === 0);
   }
-  // Footer's dark bar background was changed from a flat bgcolor to the
-  // Career card's own gradient — verified for real just below (item [5b])
-  // by comparing the two literal gradient expressions, not by re-checking
-  // for the now-gone bgcolor line here.
+  // Footer uses Career gradient
 }
 
-// ---------------------------------------------------------------------------
-// Updated in place: Footer's gradient no longer lives inline in Footer.jsx
-// as a MUI `sx` expression (the architecture this check originally
-// verified) — it was moved to Footer.scss as a plain CSS gradient using
-// the app's shared Sass tokens instead. The formula/angle/stops
-// requirement this check exists for is unchanged; only where the gradient
-// is expressed changed. Verified two ways: the SCSS expression itself
-// (same 115deg angle, same 0%/40%/100% stops, three tokens in the same
-// role-order), and — since a Sass token name alone doesn't prove color
-// equivalence — that each Sass token resolves to the exact same hex value
-// as the MUI theme token it stands in for, so this isn't just a
-// similarly-shaped but differently-colored gradient.
+// Gradient moved to SCSS
 console.log("\n[5b] Footer.scss's gradient background is the EXACT same formula/tokens as Home.jsx's Career card — no new color or gradient was introduced, just expressed via the shared Sass tokens instead of inline MUI sx");
 {
   const footerScss = readSource("components/Footer.scss");
@@ -155,10 +135,7 @@ console.log("\n[7] Find Jobs' honest no-results distinction is preserved (item 1
 {
   const findJob = readSource("pages/FindJob/FindJob.jsx");
   const jobDiscoveryState = readSource("utils/jobDiscoveryState.js");
-  // Phase 2G-7B replaced the old flat "No jobs match your search/filters"
-  // sentence with a richer state (heading + the actual query named +
-  // Clear Search/Browse All Jobs actions) — updated in place to check for
-  // that richer state's markers instead of the old exact phrase.
+  // Richer no-results state
   check("FindJob.jsx still distinguishes 'nothing exists at all' from 'your search/filters matched nothing'", /No active jobs are available right now/.test(findJob) && /No jobs found/.test(findJob));
   check("the zero-results branch never falls back to rendering unrelated jobs (it's the sole content of that success-with-zero-jobs branch)", /state\.jobs\.length === 0 &&[\s\S]{0,1400}state\.jobs\.length > 0/.test(findJob));
   check("FindJob.jsx's initial filters are read from the URL on mount, so a homepage-issued /jobs?q=... link is honored", /searchParamsToFilters\(Object\.fromEntries\(searchParams\)\)/.test(findJob));

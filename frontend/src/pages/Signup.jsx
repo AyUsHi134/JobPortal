@@ -1,20 +1,17 @@
 import React, { useState } from "react";
 import { Container, Card, CardContent, TextField, Button, Typography, Alert } from "@mui/material";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { signup as signupRequest } from "../services/authApi.js";
+import { useAuth } from "../hooks/useAuth";
 
-// Phase 2F: UI/UX polish only — the request itself is unchanged
-// (`signupRequest(form.name, form.email, form.password)`, then a
-// navigation to /login on success). A blocking `alert()` on failure was
-// replaced with an inline, dismissable-by-retry `Alert` (consistent with
-// Login.jsx's own error presentation and with Profile.jsx's Phase 2E
-// pattern), and the submit button now shows a real loading/disabled
-// state so a double-click can't fire two signup requests.
+// UI polish, same request
 export default function Signup() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -24,8 +21,9 @@ export default function Signup() {
     setError("");
     setIsSubmitting(true);
     try {
-      await signupRequest(form.name, form.email, form.password);
-      navigate("/login");
+      const { token, user } = await signupRequest(form.name, form.email, form.password);
+      login(token, user);
+      navigate(location.state?.from || "/profile");
     } catch (err) {
       setError(err.message || "Signup failed");
       setIsSubmitting(false);
@@ -79,7 +77,7 @@ export default function Signup() {
               {isSubmitting ? "Creating account..." : "Create Account"}
             </Button>
             <Typography sx={{ mt: 2 }}>
-              Already have an account? <Link to="/login">Log in</Link>
+              Already have an account? <Link to="/login" state={{ from: location.state?.from }}>Log in</Link>
             </Typography>
           </form>
         </CardContent>

@@ -1,12 +1,4 @@
-// Deterministic static verification for the Phase 2F loading/empty/
-// error/auth-required state standardization pass, plus the whole-tree
-// "no direct fetch/axios/Adzuna/RemoteOK call was introduced outside the
-// service layer" checks this phase's task brief requires (items 17/18) —
-// re-run here across every file this phase touched, not just the
-// handful Phase 2C's testJobDiscovery.js already covers, since this
-// phase edited many additional files (Navbar, Login, Signup, AddJob,
-// Profile, SavedJobs, JobDetail, ForgotPassword, Contact,
-// NewsletterSection, About). Run via `node src/tests/testUiStates.js`.
+// UI states static verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -96,14 +88,7 @@ console.log("\n[4] Empty states explain what's empty AND offer a next action, no
   check("...and offers a concrete next action (a link to browse jobs)", /Browse jobs/.test(savedJobs) && /to="\/jobs"/.test(savedJobs));
 
   const findJob = readSource("pages/FindJob/FindJob.jsx");
-  // Phase 2G-7B replaced the flat "No jobs match your search/filters"
-  // one-liner with a richer no-results state (a "No jobs found" heading,
-  // the actual query named, and Clear Search/Browse All Jobs actions) —
-  // this check was updated in place to look for that richer state instead
-  // of the old exact phrase, while still confirming the same underlying
-  // property: "nothing exists yet" and "your filters matched nothing" are
-  // still two distinct, honest messages, not one generic string reused
-  // for both situations.
+  // Richer no-results state check
   check("Job Discovery distinguishes 'nothing exists yet' from 'your filters matched nothing' (two different situations, two different messages)", /No active jobs are available right now/.test(findJob) && /No jobs found/.test(findJob) && /no-results__title/.test(findJob));
 }
 

@@ -1,13 +1,4 @@
-// Deterministic, integration-style verification for the Phase 2C Job
-// Discovery feature as a whole: that an initial (no-filter) listing
-// request resolves into correctly-shaped, fully-formattable job data,
-// plus the required static checks — no new direct fetch/axios calls
-// were introduced outside the service layer, no Adzuna/RemoteOK
-// references exist anywhere in the frontend, and JobCard's existing
-// navigation to the future Job Detail route is preserved. No real
-// network call is made for the data-flow checks; the static checks read
-// the actual source files on disk. Run via
-// `node src/tests/testJobDiscovery.js`.
+// Job discovery integration verification
 
 import fs from "node:fs";
 import path from "node:path";
@@ -48,10 +39,7 @@ function mockAdapter({ status = 200, data = {} } = {}, captureConfig) {
   };
 }
 
-// A representative page of realistic, varied active jobs — mirrors the
-// actual field combinations documented in BACKEND_API_CONTRACT.md §2/§9
-// (a RemoteOK-shaped job with mostly-null location/salary/experience,
-// and an Adzuna-shaped job with fuller structured data).
+// Realistic varied job page
 const REALISTIC_PAGE = [
   {
     _id: "6a0000000000000000000001",
@@ -118,20 +106,13 @@ console.log("\n[1] An initial, no-filter listing request resolves into correctly
 
   const [remoteOkJob, adzunaJob] = jobs;
 
-  // The RemoteOK-shaped job: mostly-null structured fields must degrade
-  // gracefully through the exact same formatters JobCard.jsx uses.
-  // Phase 2G-2 fix: formatLocation() now strips a stray trailing comma
-  // left over from source data ("Hounslow," in this exact mocked
-  // RemoteOK-shaped record) instead of passing it through verbatim — this
-  // assertion previously encoded that trailing-comma bug as expected
-  // behavior; it is corrected here, not the formatter (see
-  // utils/jobDisplay.js#cleanLocationText and PHASE_2G2_REPORT.md §3).
+  // Null-heavy job degrades gracefully
   check("RemoteOK job's location formats from `raw`, with the source's trailing comma cleaned off", formatLocation(remoteOkJob.location) === "Hounslow");
   check("RemoteOK job's salary is correctly absent (both min/max null) — no fake figure", formatSalary(remoteOkJob.salary) === null);
   check("RemoteOK job's experience_level ('unknown') never renders as a confirmed level", formatExperience(remoteOkJob.experience_level) === null);
   check("RemoteOK job's is_remote (true) renders as a confirmed 'Remote'", formatRemote(remoteOkJob.is_remote) === "Remote");
 
-  // The Adzuna-shaped job: fuller structured data renders the real values.
+  // Fuller structured data job
   check("Adzuna job's location prefers display_name", formatLocation(adzunaJob.location) === "Pune, Maharashtra");
   check("Adzuna job's salary renders the real structured range", formatSalary(adzunaJob.salary) === "INR 800,000 – 1,200,000");
   check("Adzuna job's experience_level ('mid') renders a real label", formatExperience(adzunaJob.experience_level) === "Mid Level");
@@ -156,14 +137,7 @@ console.log("\n[2] No direct fetch/axios calls exist outside the centralized ser
 // ---------------------------------------------------------------------------
 console.log("\n[3] No direct Adzuna/RemoteOK API calls exist anywhere in the frontend source");
 {
-  // Deliberately checks for API-CALL-shaped patterns (a hostname, or the
-  // word appearing as an argument to fetch/axios) rather than any
-  // mention of the words "adzuna"/"remoteok" at all — FindJob.jsx's
-  // Source filter legitimately uses the literal strings "adzuna"/
-  // "remoteok" as filter *values* (exactly what this phase's task
-  // requires: "Source: all / Adzuna / RemoteOK"), matching the backend's
-  // own documented `source` field values, not a network call. A blanket
-  // text search would flag that legitimate UI as a false positive.
+  // Detects API-call patterns only
   function walk(dir, files = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
@@ -186,9 +160,7 @@ console.log("\n[3] No direct Adzuna/RemoteOK API calls exist anywhere in the fro
   }
   check("zero application-source files contain an Adzuna/RemoteOK hostname or call-site pattern", offenders.length === 0);
 
-  // Confirm the check itself is actually discriminating, not just always
-  // passing — the Source filter's plain "adzuna"/"remoteok" strings must
-  // NOT trip the (correctly narrower) patterns above.
+  // Confirms check is discriminating
   const findJobSource = fs.readFileSync(path.join(SRC_DIR, "pages/FindJob/FindJob.jsx"), "utf8");
   check("FindJob.jsx's Source filter option values are present (the legitimate case this check must not flag)", /"adzuna"/.test(findJobSource) && /"remoteok"/.test(findJobSource));
   check("...and correctly do NOT match the API-call-site pattern", !CALL_SITE_PATTERN.test(findJobSource) && !HOSTNAME_PATTERN.test(findJobSource));

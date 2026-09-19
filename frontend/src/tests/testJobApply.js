@@ -1,14 +1,4 @@
-// Deterministic, static verification for the Phase 2G-4 Apply flow:
-// JobCard -> View Details -> /job/:id -> Apply Now -> the real,
-// backend-supplied apply_link, opened externally with no intermediate
-// page, no fake internal application form, and no request ever sent to
-// the JobPortal backend for "applying." Focused on what this phase
-// actually changed/verified — the underlying apply_link/isValidApplyLink
-// plumbing itself was already covered by testJobDetails.js [7] (Phase
-// 2D) and is not re-duplicated here except where this phase's own
-// requirements (single action, no URL construction, no redundant link,
-// no fake form) need fresh coverage. Run via
-// `node src/tests/testJobApply.js`.
+// Apply flow static verification
 
 import fs from "node:fs";
 import path from "node:path";

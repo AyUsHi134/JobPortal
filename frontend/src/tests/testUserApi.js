@@ -1,11 +1,4 @@
-// Deterministic verification for frontend/src/services/userApi.js
-// (Phase 2B): profile, save-job, is-saved, and unsave-job API functions —
-// compared directly against BACKEND_API_CONTRACT.md §6-§7. Critically
-// verifies that these calls never send a client-supplied user id (the
-// backend derives the acting user purely from the Authorization header
-// the centralized apiClient attaches — PHASE_1I4_REPORT.md's own
-// impersonation fix). No real network call is made. Run via
-// `node src/tests/testUserApi.js`.
+// User API verification, mocked axios
 
 globalThis.localStorage = (() => {
   const store = new Map();
@@ -39,12 +32,7 @@ function mockAdapter({ status = 200, data = {} } = {}, captureConfig) {
   };
 }
 
-// A custom axios adapter must explicitly reject for a non-2xx response —
-// unlike the real http/xhr adapters, it does not happen automatically
-// just by setting `status` on a resolved value (those built-in adapters
-// call axios's internal `settle()`, which this test deliberately doesn't
-// depend on). Used for every "the backend responded with an error status"
-// scenario.
+// Adapter must reject non-2xx
 function mockFailureAdapter({ status, data } = {}, captureConfig) {
   return async (config) => {
     if (captureConfig) captureConfig(config);

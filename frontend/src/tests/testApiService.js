@@ -1,22 +1,4 @@
-// Deterministic verification for the Phase 2B centralized HTTP client
-// (frontend/src/services/api.js): base URL configuration, token storage,
-// the request interceptor's Authorization-header attachment, the
-// response interceptor's 401 handling, and safe error normalization.
-//
-// No test framework/dependency is added — this mirrors the backend's own
-// established testing convention (plain Node scripts with a small
-// check() helper), run directly via `node src/tests/testApiService.js`.
-// No real network call is ever made: axios's own `adapter` override
-// mechanism (a stable, documented axios feature) replaces the actual
-// HTTP transport with a deterministic canned response/error, while the
-// REAL request/response interceptors still run around it — so this
-// exercises the actual production interceptor code, not a reimplemented
-// mock of it.
-//
-// `localStorage` doesn't exist in plain Node, so a minimal in-memory
-// stand-in is installed on `globalThis` BEFORE api.js is imported
-// (dynamic `import()`, not a static import, so ordering is guaranteed —
-// see the comment below).
+// API client verification, no network
 
 function createFakeLocalStorage() {
   const store = new Map();
@@ -30,11 +12,7 @@ function createFakeLocalStorage() {
 
 globalThis.localStorage = createFakeLocalStorage();
 
-// Static imports are resolved before any of this file's own top-level
-// code runs, so the fake localStorage above MUST be installed via a
-// dynamic import (a plain function call, evaluated in place) rather than
-// a static `import` statement, or api.js's module body could observe an
-// undefined `localStorage`.
+// Dynamic import after fake localStorage
 const { apiClient, getStoredAuth, setStoredAuth, clearStoredAuth, getToken, onUnauthorized, ApiError, API_BASE_URL } =
   await import("../services/api.js");
 
@@ -75,9 +53,7 @@ console.log("============================");
 // ---------------------------------------------------------------------------
 console.log("\n[1] API_BASE_URL falls back to the documented default outside Vite");
 {
-  // In this plain-Node context, import.meta.env is undefined, so the
-  // fallback default must be used — proving the config doesn't crash or
-  // silently resolve to "undefined" when VITE_API_URL isn't injected.
+  // Fallback default without Vite env
   check("API_BASE_URL is the documented localhost default", API_BASE_URL === "http://localhost:5000");
   check("apiClient's baseURL matches", apiClient.defaults.baseURL === "http://localhost:5000");
 }
@@ -98,7 +74,7 @@ console.log("\n[2] Auth storage: set / get / clear round-trip, never throws on g
   clearStoredAuth();
   check("auth is cleared after clearStoredAuth()", getStoredAuth() === null);
 
-  // A malformed/legacy stored value must never crash the app.
+  // Malformed value must not crash
   localStorage.setItem("jobportal_auth", "{not valid json");
   check("malformed stored JSON is treated as logged-out, not a crash", getStoredAuth() === null);
   localStorage.setItem("jobportal_auth", JSON.stringify({ user: { name: "no token here" } }));
@@ -202,10 +178,7 @@ console.log("\n[7] Error normalization extracts the right message across all thr
 // ---------------------------------------------------------------------------
 console.log("\n[8] Error normalization never leaks raw error internals to the caller");
 {
-  // Simulates a hypothetical backend response that (incorrectly) included
-  // extra internal detail alongside its safe error message — proving the
-  // normalizer only ever surfaces the one recognized safe-message key,
-  // never the whole response body.
+  // Only safe message key surfaced
   const SENSITIVE = "MongoServerError: bad auth for jobportaluser:S3cr3tP@ss@cluster0.mongodb.net";
   apiClient.defaults.adapter = mockFailureAdapter({
     status: 500,
@@ -221,9 +194,7 @@ console.log("\n[8] Error normalization never leaks raw error internals to the ca
   check("the sensitive extra fields never appear in the normalized error's message", !thrown.message.includes(SENSITIVE));
   check("the normalized error exposes only {name, status, details} as its own enumerable properties — no passthrough of the raw response body", Object.keys(thrown).sort().join(",") === "details,name,status");
 
-  // A network failure (no response at all) must also produce a safe,
-  // generic message — never the raw axios/Node error text (which can
-  // include the request URL/host).
+  // Network failure yields generic message
   apiClient.defaults.adapter = async () => {
     const error = new Error("connect ECONNREFUSED 127.0.0.1:5000");
     error.isAxiosError = true;
@@ -255,18 +226,10 @@ console.log("\n[9] Error `details` array (validation errors) is preserved when p
   check("details array is preserved", Array.isArray(thrown.details) && thrown.details[0] === "Path `title` is required.");
 }
 
-// ---------------------------------------------------------------------------
-// Production-readiness audit follow-up: express-rate-limit's default 429
-// body is plain TEXT (`response.send(message)`), not JSON — so
-// extractMessage's own typeof-object check previously always fell through
-// to the generic "Something went wrong" message for a rate limit, giving
-// no indication of what actually happened. normalizeError now special-
-// cases 429 with its own message, reading `Retry-After` when the backend
-// sends it (both real limiters set it via `standardHeaders: true`).
+// 429 plain-text body handling
 console.log("\n[10] A 429 (rate limited) response gets a specific, non-generic message — status and Retry-After are read, no retry is attempted automatically");
 {
-  // express-rate-limit's actual real-world shape: a plain-text body, a
-  // numeric-seconds Retry-After header.
+  // Real rate-limit response shape
   apiClient.defaults.adapter = mockFailureAdapter({
     status: 429,
     data: "Too many requests, please try again later.",
@@ -284,9 +247,7 @@ console.log("\n[10] A 429 (rate limited) response gets a specific, non-generic m
   check("the message includes the real Retry-After wait time", thrown.message.includes("42"));
   check("no `retryAfter`/extra field was added to the error's own enumerable shape — {name, status, details} stays exact, same as every other error", Object.keys(thrown).sort().join(",") === "details,name,status");
 
-  // No Retry-After header at all: still a specific, honest message — never
-  // silently falls back to the unhelpful generic one, and never fabricates
-  // a wait time it wasn't told.
+  // Missing Retry-After still specific
   apiClient.defaults.adapter = mockFailureAdapter({ status: 429, data: "Too many requests, please try again later.", headers: {} });
   let thrownNoHeader = null;
   try {
@@ -296,10 +257,7 @@ console.log("\n[10] A 429 (rate limited) response gets a specific, non-generic m
   }
   check("without a Retry-After header, the message is still rate-limit-specific (not generic, not fabricated)", thrownNoHeader.message !== "Something went wrong. Please try again." && !/NaN/.test(thrownNoHeader.message));
 
-  // A hypothetical future/other endpoint's own JSON-bodied 429 (this app's
-  // limiters don't currently send one, but the fix is deliberately kept
-  // generic enough to respect a real backend message when present, per the
-  // same extractMessage convention every other status already follows).
+  // Future JSON 429 respected
   apiClient.defaults.adapter = mockFailureAdapter({ status: 429, data: { error: "Slow down, friend." }, headers: { "retry-after": "5" } });
   let thrownJsonBody = null;
   try {
